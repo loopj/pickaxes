@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="350" viewBox="0 0 680 350" role="img" aria-label="Axial and radial deadzone regions">
+<title>Axial and radial deadzones compared</title>
+<desc>Two stick space squares side by side. The axial square shows inner and outer deadzones as full length bands; the radial square shows them as a centre disc and an outer annulus. A shared legend sits below.</desc>
+<style>
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .title { font-size: 14px; font-weight: 500; fill: #2C2C2A; }
+  .label { font-size: 12px; font-weight: 400; fill: #5F5E5A; }
+  .panel { fill: none; stroke: #B4B2A9; stroke-width: 0.5; }
+  .hair  { fill: none; stroke: #888780; stroke-width: 0.75; stroke-dasharray: 4 4; opacity: 0.6; }
+  .inner { fill: #D85A30; opacity: 0.28; }
+  .outer { fill: #1D9E75; opacity: 0.28; }
+  .ring  { fill: none; stroke: #1D9E75; stroke-width: 12; opacity: 0.28; }
+  .key-i { fill: #D85A30; opacity: 0.55; }
+  .key-o { fill: #1D9E75; opacity: 0.55; }
+</style>
+
+<text class="title" x="190" y="34" text-anchor="middle">Axial</text>
+<text class="title" x="490" y="34" text-anchor="middle">Radial</text>
+
+<rect class="panel" x="70" y="54" width="240" height="240" rx="4"/>
+<rect class="inner" x="178" y="54" width="24" height="240"/>
+<rect class="inner" x="70" y="162" width="240" height="24"/>
+<rect class="outer" x="70" y="54" width="12" height="240"/>
+<rect class="outer" x="298" y="54" width="12" height="240"/>
+<rect class="outer" x="70" y="54" width="240" height="12"/>
+<rect class="outer" x="70" y="282" width="240" height="12"/>
+<circle class="hair" cx="190" cy="174" r="120"/>
+
+<rect class="panel" x="370" y="54" width="240" height="240" rx="4"/>
+<circle class="inner" cx="490" cy="174" r="12"/>
+<circle class="ring" cx="490" cy="174" r="114"/>
+<circle class="hair" cx="490" cy="174" r="120"/>
+
+<rect class="key-i" x="138" y="317" width="11" height="11"/>
+<text class="label" x="155" y="326">Inner deadzone</text>
+<rect class="key-o" x="281" y="317" width="11" height="11"/>
+<text class="label" x="298" y="326">Outer deadzone</text>
+<line class="hair" x1="424" y1="322" x2="438" y2="322"/>
+<text class="label" x="444" y="326">Max deflection</text>
+</svg>

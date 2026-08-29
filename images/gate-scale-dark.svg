@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="298" viewBox="0 0 680 298" role="img" aria-label="Scaled gates for the three octagon presets">
+<title>Scaled gates for the three octagon presets</title>
+<desc>Three panels sharing one scale. Each shows a dashed circle of full stick deflection and the gate left where its corner position puts it, with arrows from the circle to the gate marking where a fully deflected stick lands. Arrows run outward for the square and N64 gates and inward for the regular one.</desc>
+<defs><marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+  <path d="M0,0 L8,4 L0,8 z" fill="#9FE1CB"/></marker></defs>
+<style>
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .title { font-size: 14px; font-weight: 500; fill: #F1EFE8; }
+  .col   { font-size: 12px; font-weight: 500; fill: #F1EFE8; }
+  .label { font-size: 11px; fill: #C2C0B6; }
+  .axis  { stroke: #6B6A65; stroke-width: 0.5; }
+  .hair  { fill: none; stroke: #B4B2A9; stroke-width: 0.75; stroke-dasharray: 4 4; opacity: 0.75; }
+  .gate  { fill: #F5C4B3; fill-opacity: 0.14; stroke: #F5C4B3; stroke-width: 1.5; stroke-linejoin: round; }
+  .dead  { fill: #F5C4B3; fill-opacity: 0.30; stroke: none; }
+  .arrow { stroke: #9FE1CB; stroke-width: 1.3; fill: none; }
+</style>
+<text class="title" x="340" y="26" text-anchor="middle">AXES_GATE_SCALE</text>
+<line class="axis" x1="44.0" y1="150" x2="216.0" y2="150"/>
+<line class="axis" x1="130" y1="64.0" x2="130" y2="236.0"/>
+<circle class="hair" cx="130" cy="150" r="62"/>
+<polygon class="gate" points="192.0,150.0 192.0,88.0 130.0,88.0 68.0,88.0 68.0,150.0 68.0,212.0 130.0,212.0 192.0,212.0"/>
+<line class="arrow" marker-end="url(#ah)" x1="187.3" y1="126.3" x2="192.0" y2="124.3"/>
+<line class="arrow" marker-end="url(#ah)" x1="173.8" y1="106.2" x2="192.0" y2="88.0"/>
+<line class="arrow" marker-end="url(#ah)" x1="153.7" y1="92.7" x2="155.7" y2="88.0"/>
+<line class="arrow" marker-end="url(#ah)" x1="106.3" y1="92.7" x2="104.3" y2="88.0"/>
+<line class="arrow" marker-end="url(#ah)" x1="86.2" y1="106.2" x2="68.0" y2="88.0"/>
+<line class="arrow" marker-end="url(#ah)" x1="72.7" y1="126.3" x2="68.0" y2="124.3"/>
+<line class="arrow" marker-end="url(#ah)" x1="72.7" y1="173.7" x2="68.0" y2="175.7"/>
+<line class="arrow" marker-end="url(#ah)" x1="86.2" y1="193.8" x2="68.0" y2="212.0"/>
+<line class="arrow" marker-end="url(#ah)" x1="106.3" y1="207.3" x2="104.3" y2="212.0"/>
+<line class="arrow" marker-end="url(#ah)" x1="153.7" y1="207.3" x2="155.7" y2="212.0"/>
+<line class="arrow" marker-end="url(#ah)" x1="173.8" y1="193.8" x2="192.0" y2="212.0"/>
+<line class="arrow" marker-end="url(#ah)" x1="187.3" y1="173.7" x2="192.0" y2="175.7"/>
+<text class="col" x="130" y="246" text-anchor="middle">AXES_OCTAGON_SQUARE</text>
+<line class="axis" x1="254.0" y1="150" x2="426.0" y2="150"/>
+<line class="axis" x1="340" y1="64.0" x2="340" y2="236.0"/>
+<circle class="hair" cx="340" cy="150" r="62"/>
+<polygon class="gate" points="402.0,150.0 391.1,98.9 340.0,88.0 288.9,98.9 278.0,150.0 288.9,201.1 340.0,212.0 391.1,201.1"/>
+<line class="arrow" marker-end="url(#ah)" x1="383.8" y1="106.2" x2="391.1" y2="98.9"/>
+<line class="arrow" marker-end="url(#ah)" x1="296.2" y1="106.2" x2="288.9" y2="98.9"/>
+<line class="arrow" marker-end="url(#ah)" x1="296.2" y1="193.8" x2="288.9" y2="201.1"/>
+<line class="arrow" marker-end="url(#ah)" x1="383.8" y1="193.8" x2="391.1" y2="201.1"/>
+<text class="col" x="340" y="246" text-anchor="middle">AXES_OCTAGON_N64</text>
+<line class="axis" x1="464.0" y1="150" x2="636.0" y2="150"/>
+<line class="axis" x1="550" y1="64.0" x2="550" y2="236.0"/>
+<circle class="hair" cx="550" cy="150" r="62"/>
+<polygon class="gate" points="612.0,150.0 593.8,106.2 550.0,88.0 506.2,106.2 488.0,150.0 506.2,193.8 550.0,212.0 593.8,193.8"/>
+<line class="arrow" marker-end="url(#ah)" x1="607.3" y1="126.3" x2="602.9" y2="128.1"/>
+<line class="arrow" marker-end="url(#ah)" x1="573.7" y1="92.7" x2="571.9" y2="97.1"/>
+<line class="arrow" marker-end="url(#ah)" x1="526.3" y1="92.7" x2="528.1" y2="97.1"/>
+<line class="arrow" marker-end="url(#ah)" x1="492.7" y1="126.3" x2="497.1" y2="128.1"/>
+<line class="arrow" marker-end="url(#ah)" x1="492.7" y1="173.7" x2="497.1" y2="171.9"/>
+<line class="arrow" marker-end="url(#ah)" x1="526.3" y1="207.3" x2="528.1" y2="202.9"/>
+<line class="arrow" marker-end="url(#ah)" x1="573.7" y1="207.3" x2="571.9" y2="202.9"/>
+<line class="arrow" marker-end="url(#ah)" x1="607.3" y1="173.7" x2="602.9" y2="171.9"/>
+<text class="col" x="550" y="246" text-anchor="middle">AXES_OCTAGON_REGULAR</text>
+<line class="hair" x1="213.0" y1="276" x2="227.0" y2="276"/>
+<text class="label" x="233.0" y="280">Full deflection</text>
+<line class="gate" x1="323.0" y1="276" x2="337.0" y2="276"/>
+<text class="label" x="343.0" y="280">Gate</text>
+<line class="arrow" marker-end="url(#ah)" x1="389.0" y1="276" x2="403.0" y2="276"/>
+<text class="label" x="409.0" y="280">Rescaled to</text>
+</svg>

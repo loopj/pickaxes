@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="490" viewBox="0 0 680 490" role="img" aria-label="Stick gate shapes for eight corner values">
+<title>Stick gate shapes compared</title>
+<desc>Eight panels sharing one scale. Each shows a dashed unit circle, faint axes, and a closed octagonal gate with cardinal vertices at radius 1 and corner vertices at (b, b), for b from 1.00 down to 0.40.</desc>
+<style>
+  text  { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .title { font-size: 14px; font-weight: 500; fill: #2C2C2A; }
+  .label { font-size: 12px; font-weight: 400; fill: #5F5E5A; }
+  .axis  { stroke: #B4B2A9; stroke-width: 0.5; }
+  .hair  { fill: none; stroke: #888780; stroke-width: 0.75; stroke-dasharray: 4 4; opacity: 0.6; }
+  .gate  { fill: #D85A30; fill-opacity: 0.16; stroke: #D85A30; stroke-width: 1.5; stroke-linejoin: round; }
+  .vert  { fill: #1D9E75; }
+  .key-g { fill: none; stroke: #D85A30; stroke-width: 1.5; }
+</style>
+
+<g transform="translate(100,100)">
+<line class="axis" x1="-70" y1="0" x2="70" y2="0"/>
+<line class="axis" x1="0" y1="-70" x2="0" y2="70"/>
+<circle class="hair" cx="0" cy="0" r="62"/>
+<polygon class="gate" points="62,0 62,-62 0,-62 -62,-62 -62,0 -62,62 0,62 62,62"/>
+<circle class="vert" cx="62" cy="-62" r="2.4"/><circle class="vert" cx="-62" cy="-62" r="2.4"/><circle class="vert" cx="-62" cy="62" r="2.4"/><circle class="vert" cx="62" cy="62" r="2.4"/>
+</g>
+<text class="title" x="100" y="196" text-anchor="middle">corner = 1.00</text>
+<text class="label" x="100" y="214" text-anchor="middle">AXES_OCTAGON_SQUARE</text>
+<g transform="translate(260,100)">
+<line class="axis" x1="-70" y1="0" x2="70" y2="0"/>
+<line class="axis" x1="0" y1="-70" x2="0" y2="70"/>
+<circle class="hair" cx="0" cy="0" r="62"/>
+<polygon class="gate" points="62,0 55.8,-55.8 0,-62 -55.8,-55.8 -62,0 -55.8,55.8 0,62 55.8,55.8"/>
+<circle class="vert" cx="55.8" cy="-55.8" r="2.4"/><circle class="vert" cx="-55.8" cy="-55.8" r="2.4"/><circle class="vert" cx="-55.8" cy="55.8" r="2.4"/><circle class="vert" cx="55.8" cy="55.8" r="2.4"/>
+</g>
+<text class="title" x="260" y="196" text-anchor="middle">corner = 0.90</text>
+<g transform="translate(420,100)">
+<line class="axis" x1="-70" y1="0" x2="70" y2="0"/>
+<line class="axis" x1="0" y1="-70" x2="0" y2="70"/>
+<circle class="hair" cx="0" cy="0" r="62"/>
+<polygon class="gate" points="62,0 51.06,-51.06 0,-62 -51.06,-51.06 -62,0 -51.06,51.06 0,62 51.06,51.06"/>
+<circle class="vert" cx="51.06" cy="-51.06" r="2.4"/><circle class="vert" cx="-51.06" cy="-51.06" r="2.4"/><circle class="vert" cx="-51.06" cy="51.06" r="2.4"/><circle class="vert" cx="51.06" cy="51.06" r="2.4"/>
+</g>
+<text class="title" x="420" y="196" text-anchor="middle">corner = 70/85 · ≈0.82</text>
+<text class="label" x="420" y="214" text-anchor="middle">AXES_OCTAGON_N64</text>
+<g transform="translate(580,100)">
+<line class="axis" x1="-70" y1="0" x2="70" y2="0"/>
+<line class="axis" x1="0" y1="-70" x2="0" y2="70"/>
+<circle class="hair" cx="0" cy="0" r="62"/>
+<polygon class="gate" points="62,0 46.5,-46.5 0,-62 -46.5,-46.5 -62,0 -46.5,46.5 0,62 46.5,46.5"/>
+<circle class="vert" cx="46.5" cy="-46.5" r="2.4"/><circle class="vert" cx="-46.5" cy="-46.5" r="2.4"/><circle class="vert" cx="-46.5" cy="46.5" r="2.4"/><circle class="vert" cx="46.5" cy="46.5" r="2.4"/>
+</g>
+<text class="title" x="580" y="196" text-anchor="middle">corner = 0.75</text>
+<g transform="translate(100,320)">
+<line class="axis" x1="-70" y1="0" x2="70" y2="0"/>
+<line class="axis" x1="0" y1="-70" x2="0" y2="70"/>
+<circle class="hair" cx="0" cy="0" r="62"/>
+<polygon class="gate" points="62,0 43.84,-43.84 0,-62 -43.84,-43.84 -62,0 -43.84,43.84 0,62 43.84,43.84"/>
+<circle class="vert" cx="43.84" cy="-43.84" r="2.4"/><circle class="vert" cx="-43.84" cy="-43.84" r="2.4"/><circle class="vert" cx="-43.84" cy="43.84" r="2.4"/><circle class="vert" cx="43.84" cy="43.84" r="2.4"/>
+</g>
+<text class="title" x="100" y="416" text-anchor="middle">corner = 1/√2 · ≈0.71</text>
+<text class="label" x="100" y="434" text-anchor="middle">AXES_OCTAGON_REGULAR</text>
+<g transform="translate(260,320)">
+<line class="axis" x1="-70" y1="0" x2="70" y2="0"/>
+<line class="axis" x1="0" y1="-70" x2="0" y2="70"/>
+<circle class="hair" cx="0" cy="0" r="62"/>
+<polygon class="gate" points="62,0 39.68,-39.68 0,-62 -39.68,-39.68 -62,0 -39.68,39.68 0,62 39.68,39.68"/>
+<circle class="vert" cx="39.68" cy="-39.68" r="2.4"/><circle class="vert" cx="-39.68" cy="-39.68" r="2.4"/><circle class="vert" cx="-39.68" cy="39.68" r="2.4"/><circle class="vert" cx="39.68" cy="39.68" r="2.4"/>
+</g>
+<text class="title" x="260" y="416" text-anchor="middle">corner = 0.64</text>
+<g transform="translate(420,320)">
+<line class="axis" x1="-70" y1="0" x2="70" y2="0"/>
+<line class="axis" x1="0" y1="-70" x2="0" y2="70"/>
+<circle class="hair" cx="0" cy="0" r="62"/>
+<polygon class="gate" points="62,0 31,-31 0,-62 -31,-31 -62,0 -31,31 0,62 31,31"/>
+<circle class="vert" cx="31" cy="-31" r="2.4"/><circle class="vert" cx="-31" cy="-31" r="2.4"/><circle class="vert" cx="-31" cy="31" r="2.4"/><circle class="vert" cx="31" cy="31" r="2.4"/>
+</g>
+<text class="title" x="420" y="416" text-anchor="middle">corner = 0.50</text>
+<g transform="translate(580,320)">
+<line class="axis" x1="-70" y1="0" x2="70" y2="0"/>
+<line class="axis" x1="0" y1="-70" x2="0" y2="70"/>
+<circle class="hair" cx="0" cy="0" r="62"/>
+<polygon class="gate" points="62,0 24.8,-24.8 0,-62 -24.8,-24.8 -62,0 -24.8,24.8 0,62 24.8,24.8"/>
+<circle class="vert" cx="24.8" cy="-24.8" r="2.4"/><circle class="vert" cx="-24.8" cy="-24.8" r="2.4"/><circle class="vert" cx="-24.8" cy="24.8" r="2.4"/><circle class="vert" cx="24.8" cy="24.8" r="2.4"/>
+</g>
+<text class="title" x="580" y="416" text-anchor="middle">corner = 0.40</text>
+
+<line class="hair" x1="181.9" y1="466" x2="195.9" y2="466"/>
+<text class="label" x="201.9" y="470">Full deflection</text>
+<line class="key-g" x1="305.9" y1="466" x2="319.9" y2="466"/>
+<text class="label" x="325.9" y="470">Gate edge</text>
+<circle class="vert" cx="416.0" cy="466" r="3.5"/>
+<text class="label" x="425.5" y="470">Corner vertex</text>
+</svg>
