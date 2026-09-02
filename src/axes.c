@@ -152,7 +152,7 @@ static inline int stick_deadzone_axis(const struct axes_stick_transform *t, int 
   if (deflection <= t->inner)
     return 0;
 
-  if (t->deadzone_mode == AXES_DEADZONE_SCALED) {
+  if (t->deadzone_mode == AXES_DEADZONE_MODE_SCALED) {
     // Rescale the usable travel onto full scale, clamped per axis
     int32_t scaled = ((int32_t)(deflection - t->inner) * t->usable_scale) >> AXES_SCALE_SHIFT;
     deflection     = scaled > AXES_FULL_SCALE ? AXES_FULL_SCALE : (int)scaled;
@@ -172,7 +172,7 @@ void axes_trigger_derive(struct axes_trigger_transform *t, const struct axes_tri
   if (!s)
     s = &defaults;
 
-  bool scaled = s->deadzone_mode == AXES_DEADZONE_SCALED;
+  bool scaled = s->deadzone_mode == AXES_DEADZONE_MODE_SCALED;
 
   // Travel of the axis, in raw ADC units
   int span = c->pressed - c->rest;
@@ -318,7 +318,7 @@ void axes_stick_derive(struct axes_stick_transform *t, const struct axes_stick_c
   t->gate_limit = AXES_FULL_SCALE;
 
   // Bake an octagon down to its edge tilt and cardinal reach
-  if (s->gate_shape == AXES_GATE_OCTAGON) {
+  if (s->gate_shape == AXES_GATE_SHAPE_OCTAGON) {
     // A zero corner means the regular octagon
     int corner = s->gate_corner ? s->gate_corner : AXES_OCTAGON_REGULAR;
 
@@ -329,7 +329,7 @@ void axes_stick_derive(struct axes_stick_transform *t, const struct axes_stick_c
     t->gate_k = ((int32_t)(AXES_FULL_SCALE - corner) << AXES_SCALE_SHIFT) / corner;
 
     // Adjust the gate limit down for octagons whose corners reach past full deflection
-    if (s->gate_mode == AXES_GATE_CLAMP) {
+    if (s->gate_mode == AXES_GATE_MODE_CLAMP) {
       int32_t peak = ((int32_t)corner * AXES_SQRT2_Q15) >> AXES_SCALE_SHIFT;
       if (peak < AXES_FULL_SCALE)
         peak = AXES_FULL_SCALE;
@@ -341,8 +341,8 @@ void axes_stick_derive(struct axes_stick_transform *t, const struct axes_stick_c
 void axes_stick_apply(const struct axes_stick_transform *t, uint16_t raw_x, uint16_t raw_y, int16_t *out_x,
                       int16_t *out_y)
 {
-  bool axial  = t->deadzone_shape == AXES_DEADZONE_AXIAL;
-  bool scaled = t->deadzone_mode == AXES_DEADZONE_SCALED;
+  bool axial  = t->deadzone_shape == AXES_DEADZONE_SHAPE_AXIAL;
+  bool scaled = t->deadzone_mode == AXES_DEADZONE_MODE_SCALED;
 
   // Normalized logical vector, full scale per axis, swapping the raw readings for a 90-degree mount
   int vx = axes_axis_map(&t->axis[0], t->swap_xy ? raw_y : raw_x);
@@ -388,7 +388,7 @@ void axes_stick_apply(const struct axes_stick_transform *t, uint16_t raw_x, uint
   }
 
   // Every gate but NONE holds the radius at full scale
-  if (t->gate_shape != AXES_GATE_NONE && radius > max_radius)
+  if (t->gate_shape != AXES_GATE_SHAPE_NONE && radius > max_radius)
     radius = max_radius;
 
   // Apply the response curve baked at derive time
@@ -400,7 +400,7 @@ void axes_stick_apply(const struct axes_stick_transform *t, uint16_t raw_x, uint
 
   // How far the gate boundary reaches along this direction
   int gate_reach;
-  if (t->gate_shape == AXES_GATE_OCTAGON) {
+  if (t->gate_shape == AXES_GATE_SHAPE_OCTAGON) {
     // Fold the direction into the first octant, so one baked edge covers all eight
     int major = axes_iabs(vx), minor = axes_iabs(vy);
     if (minor > major) {
@@ -421,7 +421,7 @@ void axes_stick_apply(const struct axes_stick_transform *t, uint16_t raw_x, uint
   const int32_t half = 1 << (AXES_SCALE_SHIFT - 1);
 
   int32_t radius_scale;
-  if (t->gate_mode == AXES_GATE_SCALE || t->gate_shape != AXES_GATE_OCTAGON) {
+  if (t->gate_mode == AXES_GATE_MODE_SCALE || t->gate_shape != AXES_GATE_SHAPE_OCTAGON) {
     // Stretch the travel onto the boundary, so the cardinals reach full scale.
     // Only an octagon can differ between the fits, since a circle already is the
     // travel boundary and NONE does no reshaping at all.

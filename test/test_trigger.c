@@ -76,7 +76,7 @@ static void unscaled_deadzones_are_position_true(void)
   struct axes_trigger_shaping s = {
     .deadzone_inner = AXES_FULL_SCALE / 10,
     .deadzone_outer = AXES_FULL_SCALE / 10,
-    .deadzone_mode  = AXES_DEADZONE_UNSCALED,
+    .deadzone_mode  = AXES_DEADZONE_MODE_UNSCALED,
   };
   struct axes_trigger_transform t, plain;
   axes_trigger_derive(&t, &cal, &s);

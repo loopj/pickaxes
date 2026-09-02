@@ -32,10 +32,10 @@
  */
 enum axes_deadzone_mode {
   /** Stretches the remaining travel to cover the full range, so output rises from zero */
-  AXES_DEADZONE_SCALED,
+  AXES_DEADZONE_MODE_SCALED,
 
   /** Passes input through unchanged (position-true), so output jumps as the input leaves the zone */
-  AXES_DEADZONE_UNSCALED,
+  AXES_DEADZONE_MODE_UNSCALED,
 
   /** Number of deadzone modes, not a mode itself */
   AXES_DEADZONE_MODE_COUNT,
@@ -46,10 +46,10 @@ enum axes_deadzone_mode {
  */
 enum axes_deadzone_shape {
   /** A circle applied to the stick's distance from center */
-  AXES_DEADZONE_RADIAL,
+  AXES_DEADZONE_SHAPE_RADIAL,
 
   /** A separate band applied to each axis */
-  AXES_DEADZONE_AXIAL,
+  AXES_DEADZONE_SHAPE_AXIAL,
 
   /** Number of deadzone shapes, not a shape itself */
   AXES_DEADZONE_SHAPE_COUNT,
@@ -75,17 +75,17 @@ enum axes_gate_shape {
    * No reshaping. Each axis is clamped to full scale independently, so the
    * edge is whatever the hardware produces
    */
-  AXES_GATE_NONE,
+  AXES_GATE_SHAPE_NONE,
 
   /** Full scale at every angle, a plain magnitude clamp onto a round edge */
-  AXES_GATE_CIRCLE,
+  AXES_GATE_SHAPE_CIRCLE,
 
   /**
    * Full scale at the cardinals, with the corners at the shaping's corner
    * position (see AXES_OCTAGON_*). Covers everything from a square down to a
    * diamond, and below that a concave four-pointed star
    */
-  AXES_GATE_OCTAGON,
+  AXES_GATE_SHAPE_OCTAGON,
 
   /** Number of gate shapes, not a shape itself */
   AXES_GATE_SHAPE_COUNT,
@@ -110,13 +110,13 @@ enum axes_gate_mode {
    * for the travel is shrunk to fit first, keeping its shape but costing cardinal
    * range.
    */
-  AXES_GATE_CLAMP,
+  AXES_GATE_MODE_CLAMP,
 
   /**
    * Rescales the whole travel onto the gate instead, so the cardinals always reach
    * full scale. The only mode that reaches a wide gate at its stated size
    */
-  AXES_GATE_SCALE,
+  AXES_GATE_MODE_SCALE,
 
   /** Number of gate modes, not a mode itself */
   AXES_GATE_MODE_COUNT,

@@ -98,13 +98,13 @@ static void orient_resolves_all_eight_mountings(void)
 // same-sized circle. Radial sees output; axial sees rest.
 static const struct axes_stick_shaping radial_dz = {
   .deadzone_inner = 400,
-  .deadzone_shape = AXES_DEADZONE_RADIAL,
-  .gate_shape     = AXES_GATE_CIRCLE,
+  .deadzone_shape = AXES_DEADZONE_SHAPE_RADIAL,
+  .gate_shape     = AXES_GATE_SHAPE_CIRCLE,
 };
 static const struct axes_stick_shaping axial_dz = {
   .deadzone_inner = 400,
-  .deadzone_shape = AXES_DEADZONE_AXIAL,
-  .gate_shape     = AXES_GATE_CIRCLE,
+  .deadzone_shape = AXES_DEADZONE_SHAPE_AXIAL,
+  .gate_shape     = AXES_GATE_SHAPE_CIRCLE,
 };
 
 static void radial_deadzone_measures_the_circle(void)
@@ -156,8 +156,8 @@ static void unscaled_deadzone_is_position_true(void)
 {
   struct axes_stick_shaping s = {
     .deadzone_inner = 400,
-    .deadzone_mode  = AXES_DEADZONE_UNSCALED,
-    .gate_shape     = AXES_GATE_CIRCLE,
+    .deadzone_mode  = AXES_DEADZONE_MODE_UNSCALED,
+    .gate_shape     = AXES_GATE_SHAPE_CIRCLE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -176,8 +176,8 @@ static void deadzone_overlap_stays_bounded(void)
   struct axes_stick_shaping s = {
     .deadzone_inner = 3000,
     .deadzone_outer = 3000,
-    .deadzone_mode  = AXES_DEADZONE_SCALED,
-    .gate_shape     = AXES_GATE_CIRCLE,
+    .deadzone_mode  = AXES_DEADZONE_MODE_SCALED,
+    .gate_shape     = AXES_GATE_SHAPE_CIRCLE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -196,7 +196,7 @@ static void gamma_two_quarters_half_deflection(void)
 {
   struct axes_stick_shaping s = {
     .response_gamma = 2 * AXES_GAMMA_LINEAR,
-    .gate_shape     = AXES_GATE_CIRCLE,
+    .gate_shape     = AXES_GATE_SHAPE_CIRCLE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -215,9 +215,9 @@ static void gamma_applies_after_deadzones(void)
   // zero and just past it is still near zero, for any gamma.
   struct axes_stick_shaping s = {
     .deadzone_inner = 400,
-    .deadzone_mode  = AXES_DEADZONE_SCALED,
+    .deadzone_mode  = AXES_DEADZONE_MODE_SCALED,
     .response_gamma = 2 * AXES_GAMMA_LINEAR,
-    .gate_shape     = AXES_GATE_CIRCLE,
+    .gate_shape     = AXES_GATE_SHAPE_CIRCLE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -247,7 +247,7 @@ static void gate_none_preserves_corners(void)
 static void gate_circle_clamps_to_the_rim(void)
 {
   struct axes_stick_shaping s = {
-    .gate_shape = AXES_GATE_CIRCLE,
+    .gate_shape = AXES_GATE_SHAPE_CIRCLE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -278,12 +278,12 @@ static void gate_n64_matches_oem_extents(void)
   struct axes_stick_shaping ns = {
     .deadzone_inner = AXES_FULL_SCALE * 0.05,
     .deadzone_outer = AXES_FULL_SCALE * 0.02,
-    .deadzone_shape = AXES_DEADZONE_RADIAL,
-    .deadzone_mode  = AXES_DEADZONE_SCALED,
+    .deadzone_shape = AXES_DEADZONE_SHAPE_RADIAL,
+    .deadzone_mode  = AXES_DEADZONE_MODE_SCALED,
     .response_gamma = AXES_GAMMA_LINEAR,
-    .gate_shape     = AXES_GATE_OCTAGON,
+    .gate_shape     = AXES_GATE_SHAPE_OCTAGON,
     .gate_corner    = AXES_OCTAGON_N64,
-    .gate_mode      = AXES_GATE_SCALE,
+    .gate_mode      = AXES_GATE_MODE_SCALE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -303,14 +303,14 @@ static void gate_clamp_is_position_true_inside_the_gate(void)
   // scaling rescales the whole ray. Sampled between a cardinal and a corner,
   // where a regular octagon sits furthest inside the full-scale circle.
   struct axes_stick_shaping con = {
-    .gate_shape  = AXES_GATE_OCTAGON,
+    .gate_shape  = AXES_GATE_SHAPE_OCTAGON,
     .gate_corner = AXES_OCTAGON_REGULAR,
-    .gate_mode   = AXES_GATE_CLAMP,
+    .gate_mode   = AXES_GATE_MODE_CLAMP,
   };
   struct axes_stick_shaping str = {
-    .gate_shape  = AXES_GATE_OCTAGON,
+    .gate_shape  = AXES_GATE_SHAPE_OCTAGON,
     .gate_corner = AXES_OCTAGON_REGULAR,
-    .gate_mode   = AXES_GATE_SCALE,
+    .gate_mode   = AXES_GATE_MODE_SCALE,
   };
   struct axes_stick_transform tc, ts;
   int16_t cx, cy, sx, sy;
@@ -336,14 +336,14 @@ static void gate_clamp_shrinks_gates_that_reach_past_the_circle(void)
   // restriction, so clamping shrinks it to fit and the cardinals give up range.
   // The corners land on the circle, keeping the requested shape.
   struct axes_stick_shaping n64 = {
-    .gate_shape  = AXES_GATE_OCTAGON,
+    .gate_shape  = AXES_GATE_SHAPE_OCTAGON,
     .gate_corner = AXES_OCTAGON_N64,
-    .gate_mode   = AXES_GATE_CLAMP,
+    .gate_mode   = AXES_GATE_MODE_CLAMP,
   };
   struct axes_stick_shaping sq = {
-    .gate_shape  = AXES_GATE_OCTAGON,
+    .gate_shape  = AXES_GATE_SHAPE_OCTAGON,
     .gate_corner = AXES_OCTAGON_SQUARE,
-    .gate_mode   = AXES_GATE_CLAMP,
+    .gate_mode   = AXES_GATE_MODE_CLAMP,
   };
   struct axes_stick_transform tn, tq;
   int16_t x, y;
@@ -365,9 +365,9 @@ static void gate_clamp_leaves_narrow_gates_alone(void)
   // At or below the regular octagon the gate already fits, so nothing shrinks
   // and a full cardinal deflection still reaches full scale.
   struct axes_stick_shaping reg = {
-    .gate_shape  = AXES_GATE_OCTAGON,
+    .gate_shape  = AXES_GATE_SHAPE_OCTAGON,
     .gate_corner = AXES_OCTAGON_REGULAR,
-    .gate_mode   = AXES_GATE_CLAMP,
+    .gate_mode   = AXES_GATE_MODE_CLAMP,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -381,12 +381,12 @@ static void gate_mode_does_not_disturb_an_absent_gate(void)
 {
   // NONE does no reshaping at all, so the fit setting has nothing to act on
   struct axes_stick_shaping con = {
-    .gate_shape = AXES_GATE_NONE,
-    .gate_mode  = AXES_GATE_CLAMP,
+    .gate_shape = AXES_GATE_SHAPE_NONE,
+    .gate_mode  = AXES_GATE_MODE_CLAMP,
   };
   struct axes_stick_shaping str = {
-    .gate_shape = AXES_GATE_NONE,
-    .gate_mode  = AXES_GATE_SCALE,
+    .gate_shape = AXES_GATE_SHAPE_NONE,
+    .gate_mode  = AXES_GATE_MODE_SCALE,
   };
   struct axes_stick_transform tc, ts;
   int16_t cx, cy, sx, sy;
@@ -403,10 +403,10 @@ static void gate_corner_zero_means_regular(void)
   // A corner position of zero selects the regular octagon, so a config that
   // never sets it behaves identically to one that asks for REGULAR.
   struct axes_stick_shaping zeroed = {
-    .gate_shape = AXES_GATE_OCTAGON,
+    .gate_shape = AXES_GATE_SHAPE_OCTAGON,
   };
   struct axes_stick_shaping reg = {
-    .gate_shape  = AXES_GATE_OCTAGON,
+    .gate_shape  = AXES_GATE_SHAPE_OCTAGON,
     .gate_corner = AXES_OCTAGON_REGULAR,
   };
   struct axes_stick_transform tz, tr;

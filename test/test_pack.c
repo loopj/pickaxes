@@ -30,11 +30,11 @@ static const struct axes_stick_calibration stick_cal = {
 static const struct axes_stick_shaping stick_shape = {
   .deadzone_inner = 512,
   .deadzone_outer = 256,
-  .deadzone_shape = AXES_DEADZONE_AXIAL,
-  .deadzone_mode  = AXES_DEADZONE_UNSCALED,
+  .deadzone_shape = AXES_DEADZONE_SHAPE_AXIAL,
+  .deadzone_mode  = AXES_DEADZONE_MODE_UNSCALED,
   .response_gamma = 384,
-  .gate_shape     = AXES_GATE_OCTAGON,
-  .gate_mode      = AXES_GATE_SCALE,
+  .gate_shape     = AXES_GATE_SHAPE_OCTAGON,
+  .gate_mode      = AXES_GATE_MODE_SCALE,
   .gate_corner    = AXES_OCTAGON_REGULAR,
 };
 
@@ -46,7 +46,7 @@ static const struct axes_trigger_calibration trigger_cal = {
 static const struct axes_trigger_shaping trigger_shape = {
   .deadzone_inner = 128,
   .deadzone_outer = 64,
-  .deadzone_mode  = AXES_DEADZONE_UNSCALED,
+  .deadzone_mode  = AXES_DEADZONE_MODE_UNSCALED,
   .response_gamma = AXES_GAMMA_LINEAR,
 };
 
