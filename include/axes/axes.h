@@ -4,6 +4,20 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ * Pickaxes error codes.
+ *
+ * Errors are reported as negatives of these codes. Functions return 0 on
+ * success or a negative axes_error on failure.
+ */
+enum axes_error {
+  /** A buffer is too small */
+  AXES_ERR_SIZE = 1,
+
+  /** An input holds a value the library does not accept */
+  AXES_ERR_INVALID,
+};
+
 /*
  * The full-scale magnitude of a normalized output is chosen to be 2^12, giving
  * sticks a range of [-4096, 4096] per axis and triggers a range of [0, 4096].
@@ -353,52 +367,52 @@ void axes_stick_apply(const struct axes_stick_transform *transform, uint16_t raw
 /**
  * Pack a trigger calibration into its portable byte layout.
  *
- * @param out destination buffer
+ * @param dest destination buffer
  * @param size bytes available in the destination buffer
- * @param calibration calibration data to pack
- * @return bytes written, or zero if the buffer is too small
+ * @param src calibration data to pack
+ * @return 0 on success, negative axes_error otherwise
  */
-size_t axes_trigger_calibration_pack(uint8_t *out, size_t size, const struct axes_trigger_calibration *calibration);
+int axes_trigger_calibration_pack(uint8_t *dest, size_t size, const struct axes_trigger_calibration *src);
 
 /**
  * Unpack a trigger calibration written by axes_trigger_calibration_pack().
  *
- * @param calibration destination for the unpacked calibration, untouched on failure
- * @param in source bytes
+ * @param dest destination for the unpacked calibration, untouched on failure
+ * @param src source bytes
  * @param size bytes available in the source buffer
- * @return bytes consumed, or zero if the buffer is too small
+ * @return 0 on success, negative axes_error otherwise
  */
-size_t axes_trigger_calibration_unpack(struct axes_trigger_calibration *calibration, const uint8_t *in, size_t size);
+int axes_trigger_calibration_unpack(struct axes_trigger_calibration *dest, const uint8_t *src, size_t size);
 
 /**
  * Pack a stick calibration into its portable byte layout.
  *
- * @param out destination buffer
+ * @param dest destination buffer
  * @param size bytes available in the destination buffer
- * @param calibration calibration data to pack
- * @return bytes written, or zero if the buffer is too small
+ * @param src calibration data to pack
+ * @return 0 on success, negative axes_error otherwise
  */
-size_t axes_stick_calibration_pack(uint8_t *out, size_t size, const struct axes_stick_calibration *calibration);
+int axes_stick_calibration_pack(uint8_t *dest, size_t size, const struct axes_stick_calibration *src);
 
 /**
  * Unpack a stick calibration written by axes_stick_calibration_pack().
  *
- * @param calibration destination for the unpacked calibration, untouched on failure
- * @param in source bytes
+ * @param dest destination for the unpacked calibration, untouched on failure
+ * @param src source bytes
  * @param size bytes available in the source buffer
- * @return bytes consumed, or zero if the buffer is too small
+ * @return 0 on success, negative axes_error otherwise
  */
-size_t axes_stick_calibration_unpack(struct axes_stick_calibration *calibration, const uint8_t *in, size_t size);
+int axes_stick_calibration_unpack(struct axes_stick_calibration *dest, const uint8_t *src, size_t size);
 
 /**
  * Pack trigger shaping settings into their portable byte layout.
  *
- * @param out destination buffer
+ * @param dest destination buffer
  * @param size bytes available in the destination buffer
- * @param shaping shaping settings to pack
- * @return bytes written, or zero if the buffer is too small
+ * @param src shaping settings to pack
+ * @return 0 on success, negative axes_error otherwise
  */
-size_t axes_trigger_shaping_pack(uint8_t *out, size_t size, const struct axes_trigger_shaping *shaping);
+int axes_trigger_shaping_pack(uint8_t *dest, size_t size, const struct axes_trigger_shaping *src);
 
 /**
  * Unpack trigger shaping settings written by axes_trigger_shaping_pack().
@@ -406,33 +420,32 @@ size_t axes_trigger_shaping_pack(uint8_t *out, size_t size, const struct axes_tr
  * Deadzone widths and gammas are passed through as stored, since
  * axes_trigger_derive() already clamps them.
  *
- * @param shaping destination for the unpacked settings, untouched on failure
- * @param in source bytes
+ * @param dest destination for the unpacked settings, untouched on failure
+ * @param src source bytes
  * @param size bytes available in the source buffer
- * @return bytes consumed, or zero if the record is truncated or malformed
+ * @return 0 on success, negative axes_error otherwise
  */
-size_t axes_trigger_shaping_unpack(struct axes_trigger_shaping *shaping, const uint8_t *in, size_t size);
+int axes_trigger_shaping_unpack(struct axes_trigger_shaping *dest, const uint8_t *src, size_t size);
 
 /**
  * Pack stick shaping settings into their portable byte layout.
  *
- * @param out destination buffer
+ * @param dest destination buffer
  * @param size bytes available in the destination buffer
- * @param shaping shaping settings to pack
- * @return bytes written, or zero if the buffer is too small
+ * @param src shaping settings to pack
+ * @return 0 on success, negative axes_error otherwise
  */
-size_t axes_stick_shaping_pack(uint8_t *out, size_t size, const struct axes_stick_shaping *shaping);
+int axes_stick_shaping_pack(uint8_t *dest, size_t size, const struct axes_stick_shaping *src);
 
 /**
  * Unpack stick shaping settings written by axes_stick_shaping_pack().
  *
- * Unknown enumerators are rejected rather than silently falling back to a
- * default. Deadzone widths, gammas and gate corners are passed through as
- * stored, since axes_stick_derive() already clamps them.
+ * Deadzone widths, gammas and gate corners are passed through as stored, since
+ * axes_stick_derive() already clamps them.
  *
- * @param shaping destination for the unpacked settings, untouched on failure
- * @param in source bytes
+ * @param dest destination for the unpacked settings, untouched on failure
+ * @param src source bytes
  * @param size bytes available in the source buffer
- * @return bytes consumed, or zero if the record is truncated or malformed
+ * @return 0 on success, negative axes_error otherwise
  */
-size_t axes_stick_shaping_unpack(struct axes_stick_shaping *shaping, const uint8_t *in, size_t size);
+int axes_stick_shaping_unpack(struct axes_stick_shaping *dest, const uint8_t *src, size_t size);

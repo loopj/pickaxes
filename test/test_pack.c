@@ -55,8 +55,8 @@ static void stick_calibration_round_trips(void)
   uint8_t buffer[AXES_PACKED_STICK_CALIBRATION_SIZE];
   struct axes_stick_calibration out = {0};
 
-  TEST_ASSERT_EQUAL_size_t(sizeof(buffer), axes_stick_calibration_pack(buffer, sizeof(buffer), &stick_cal));
-  TEST_ASSERT_EQUAL_size_t(sizeof(buffer), axes_stick_calibration_unpack(&out, buffer, sizeof(buffer)));
+  TEST_ASSERT_EQUAL_INT(0, axes_stick_calibration_pack(buffer, sizeof(buffer), &stick_cal));
+  TEST_ASSERT_EQUAL_INT(0, axes_stick_calibration_unpack(&out, buffer, sizeof(buffer)));
 
   TEST_ASSERT_EQUAL_UINT16(stick_cal.rest_x, out.rest_x);
   TEST_ASSERT_EQUAL_UINT16(stick_cal.rest_y, out.rest_y);
@@ -74,8 +74,8 @@ static void stick_shaping_round_trips(void)
   uint8_t buffer[AXES_PACKED_STICK_SHAPING_SIZE];
   struct axes_stick_shaping out = {0};
 
-  TEST_ASSERT_EQUAL_size_t(sizeof(buffer), axes_stick_shaping_pack(buffer, sizeof(buffer), &stick_shape));
-  TEST_ASSERT_EQUAL_size_t(sizeof(buffer), axes_stick_shaping_unpack(&out, buffer, sizeof(buffer)));
+  TEST_ASSERT_EQUAL_INT(0, axes_stick_shaping_pack(buffer, sizeof(buffer), &stick_shape));
+  TEST_ASSERT_EQUAL_INT(0, axes_stick_shaping_unpack(&out, buffer, sizeof(buffer)));
 
   TEST_ASSERT_EQUAL_UINT16(stick_shape.deadzone_inner, out.deadzone_inner);
   TEST_ASSERT_EQUAL_UINT16(stick_shape.deadzone_outer, out.deadzone_outer);
@@ -92,8 +92,8 @@ static void trigger_calibration_round_trips(void)
   uint8_t buffer[AXES_PACKED_TRIGGER_CALIBRATION_SIZE];
   struct axes_trigger_calibration out = {0};
 
-  TEST_ASSERT_EQUAL_size_t(sizeof(buffer), axes_trigger_calibration_pack(buffer, sizeof(buffer), &trigger_cal));
-  TEST_ASSERT_EQUAL_size_t(sizeof(buffer), axes_trigger_calibration_unpack(&out, buffer, sizeof(buffer)));
+  TEST_ASSERT_EQUAL_INT(0, axes_trigger_calibration_pack(buffer, sizeof(buffer), &trigger_cal));
+  TEST_ASSERT_EQUAL_INT(0, axes_trigger_calibration_unpack(&out, buffer, sizeof(buffer)));
 
   TEST_ASSERT_EQUAL_UINT16(trigger_cal.rest, out.rest);
   TEST_ASSERT_EQUAL_UINT16(trigger_cal.pressed, out.pressed);
@@ -104,8 +104,8 @@ static void trigger_shaping_round_trips(void)
   uint8_t buffer[AXES_PACKED_TRIGGER_SHAPING_SIZE];
   struct axes_trigger_shaping out = {0};
 
-  TEST_ASSERT_EQUAL_size_t(sizeof(buffer), axes_trigger_shaping_pack(buffer, sizeof(buffer), &trigger_shape));
-  TEST_ASSERT_EQUAL_size_t(sizeof(buffer), axes_trigger_shaping_unpack(&out, buffer, sizeof(buffer)));
+  TEST_ASSERT_EQUAL_INT(0, axes_trigger_shaping_pack(buffer, sizeof(buffer), &trigger_shape));
+  TEST_ASSERT_EQUAL_INT(0, axes_trigger_shaping_unpack(&out, buffer, sizeof(buffer)));
 
   TEST_ASSERT_EQUAL_UINT16(trigger_shape.deadzone_inner, out.deadzone_inner);
   TEST_ASSERT_EQUAL_UINT16(trigger_shape.deadzone_outer, out.deadzone_outer);
