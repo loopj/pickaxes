@@ -112,7 +112,7 @@ struct axes_trigger_calibration {
 
 A good way to capture these is to prompt the user to release the trigger and record `rest`, then press it all the way and record `pressed`.
 
-There no need to specify an orientation, since it can be determined automatically from the `rest` and `pressed` readings.
+There is no need to specify an orientation, since it can be determined automatically from the `rest` and `pressed` readings.
 
 ## Shaping
 
@@ -178,7 +178,7 @@ The desired output shape of the gate is chosen with `gate_shape`:
 
 - `AXES_GATE_NONE` - no reshaping, each axis clamped to full scale independently
 - `AXES_GATE_CIRCLE` - full scale at the cardinals, with a round edge between them
-- `AXES_GATE_OCTAGON` - full scale at the cardinals, octagonal, with a tunable corner position
+- `AXES_GATE_OCTAGON` - an octagon with tunable corner positions
 
 #### Gate Mode
 

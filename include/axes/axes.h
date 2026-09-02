@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /*
@@ -17,6 +18,15 @@
 #define AXES_FULL_SCALE_BITS 12
 #define AXES_FULL_SCALE      (1 << AXES_FULL_SCALE_BITS)
 
+/** Layout version of the packed records, bumped when any layout changes */
+#define AXES_PACKED_VERSION 1
+
+/** Packed record sizes, for sizing buffers and flash slots at compile time */
+#define AXES_PACKED_TRIGGER_CALIBRATION_SIZE 4
+#define AXES_PACKED_STICK_CALIBRATION_SIZE   13
+#define AXES_PACKED_TRIGGER_SHAPING_SIZE     7
+#define AXES_PACKED_STICK_SHAPING_SIZE       10
+
 /**
  * What happens to input outside the deadzone.
  */
@@ -26,6 +36,9 @@ enum axes_deadzone_mode {
 
   /** Passes input through unchanged (position-true), so output jumps as the input leaves the zone */
   AXES_DEADZONE_UNSCALED,
+
+  /** Number of deadzone modes, not a mode itself */
+  AXES_DEADZONE_MODE_COUNT,
 };
 
 /**
@@ -37,6 +50,9 @@ enum axes_deadzone_shape {
 
   /** A separate band applied to each axis */
   AXES_DEADZONE_AXIAL,
+
+  /** Number of deadzone shapes, not a shape itself */
+  AXES_DEADZONE_SHAPE_COUNT,
 };
 
 /**
@@ -70,6 +86,9 @@ enum axes_gate_shape {
    * diamond, and below that a concave four-pointed star
    */
   AXES_GATE_OCTAGON,
+
+  /** Number of gate shapes, not a shape itself */
+  AXES_GATE_SHAPE_COUNT,
 };
 
 /** Corners at full scale on both axes, a square */
@@ -98,6 +117,9 @@ enum axes_gate_mode {
    * full scale. The only mode that reaches a wide gate at its stated size
    */
   AXES_GATE_SCALE,
+
+  /** Number of gate modes, not a mode itself */
+  AXES_GATE_MODE_COUNT,
 };
 
 /** Number of points in a derived response curve lookup table */
@@ -327,3 +349,90 @@ void axes_stick_derive(struct axes_stick_transform *transform, const struct axes
  */
 void axes_stick_apply(const struct axes_stick_transform *transform, uint16_t raw_x, uint16_t raw_y, int16_t *out_x,
                       int16_t *out_y);
+
+/**
+ * Pack a trigger calibration into its portable byte layout.
+ *
+ * @param out destination buffer
+ * @param size bytes available in the destination buffer
+ * @param calibration calibration data to pack
+ * @return bytes written, or zero if the buffer is too small
+ */
+size_t axes_trigger_calibration_pack(uint8_t *out, size_t size, const struct axes_trigger_calibration *calibration);
+
+/**
+ * Unpack a trigger calibration written by axes_trigger_calibration_pack().
+ *
+ * @param calibration destination for the unpacked calibration, untouched on failure
+ * @param in source bytes
+ * @param size bytes available in the source buffer
+ * @return bytes consumed, or zero if the buffer is too small
+ */
+size_t axes_trigger_calibration_unpack(struct axes_trigger_calibration *calibration, const uint8_t *in, size_t size);
+
+/**
+ * Pack a stick calibration into its portable byte layout.
+ *
+ * @param out destination buffer
+ * @param size bytes available in the destination buffer
+ * @param calibration calibration data to pack
+ * @return bytes written, or zero if the buffer is too small
+ */
+size_t axes_stick_calibration_pack(uint8_t *out, size_t size, const struct axes_stick_calibration *calibration);
+
+/**
+ * Unpack a stick calibration written by axes_stick_calibration_pack().
+ *
+ * @param calibration destination for the unpacked calibration, untouched on failure
+ * @param in source bytes
+ * @param size bytes available in the source buffer
+ * @return bytes consumed, or zero if the buffer is too small
+ */
+size_t axes_stick_calibration_unpack(struct axes_stick_calibration *calibration, const uint8_t *in, size_t size);
+
+/**
+ * Pack trigger shaping settings into their portable byte layout.
+ *
+ * @param out destination buffer
+ * @param size bytes available in the destination buffer
+ * @param shaping shaping settings to pack
+ * @return bytes written, or zero if the buffer is too small
+ */
+size_t axes_trigger_shaping_pack(uint8_t *out, size_t size, const struct axes_trigger_shaping *shaping);
+
+/**
+ * Unpack trigger shaping settings written by axes_trigger_shaping_pack().
+ *
+ * Deadzone widths and gammas are passed through as stored, since
+ * axes_trigger_derive() already clamps them.
+ *
+ * @param shaping destination for the unpacked settings, untouched on failure
+ * @param in source bytes
+ * @param size bytes available in the source buffer
+ * @return bytes consumed, or zero if the record is truncated or malformed
+ */
+size_t axes_trigger_shaping_unpack(struct axes_trigger_shaping *shaping, const uint8_t *in, size_t size);
+
+/**
+ * Pack stick shaping settings into their portable byte layout.
+ *
+ * @param out destination buffer
+ * @param size bytes available in the destination buffer
+ * @param shaping shaping settings to pack
+ * @return bytes written, or zero if the buffer is too small
+ */
+size_t axes_stick_shaping_pack(uint8_t *out, size_t size, const struct axes_stick_shaping *shaping);
+
+/**
+ * Unpack stick shaping settings written by axes_stick_shaping_pack().
+ *
+ * Unknown enumerators are rejected rather than silently falling back to a
+ * default. Deadzone widths, gammas and gate corners are passed through as
+ * stored, since axes_stick_derive() already clamps them.
+ *
+ * @param shaping destination for the unpacked settings, untouched on failure
+ * @param in source bytes
+ * @param size bytes available in the source buffer
+ * @return bytes consumed, or zero if the record is truncated or malformed
+ */
+size_t axes_stick_shaping_unpack(struct axes_stick_shaping *shaping, const uint8_t *in, size_t size);

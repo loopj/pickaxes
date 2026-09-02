@@ -441,3 +441,151 @@ void axes_stick_apply(const struct axes_stick_transform *t, uint16_t raw_x, uint
   *out_x = (int16_t)axes_iclamp(shaped_x, -AXES_FULL_SCALE, AXES_FULL_SCALE);
   *out_y = (int16_t)axes_iclamp(shaped_y, -AXES_FULL_SCALE, AXES_FULL_SCALE);
 }
+
+// Little endian byte order, chosen so a blob moves between targets unchanged
+static inline void axes_put_u16(uint8_t *p, uint16_t value)
+{
+  p[0] = (uint8_t)(value & 0xFF);
+  p[1] = (uint8_t)(value >> 8);
+}
+
+static inline uint16_t axes_get_u16(const uint8_t *p)
+{
+  return (uint16_t)(p[0] | (p[1] << 8));
+}
+
+size_t axes_trigger_calibration_pack(uint8_t *out, size_t size, const struct axes_trigger_calibration *c)
+{
+  if (size < AXES_PACKED_TRIGGER_CALIBRATION_SIZE)
+    return 0;
+
+  axes_put_u16(&out[0], c->rest);
+  axes_put_u16(&out[2], c->pressed);
+
+  return AXES_PACKED_TRIGGER_CALIBRATION_SIZE;
+}
+
+size_t axes_trigger_calibration_unpack(struct axes_trigger_calibration *c, const uint8_t *in, size_t size)
+{
+  if (size < AXES_PACKED_TRIGGER_CALIBRATION_SIZE)
+    return 0;
+
+  c->rest    = axes_get_u16(&in[0]);
+  c->pressed = axes_get_u16(&in[2]);
+
+  return AXES_PACKED_TRIGGER_CALIBRATION_SIZE;
+}
+
+size_t axes_stick_calibration_pack(uint8_t *out, size_t size, const struct axes_stick_calibration *c)
+{
+  if (size < AXES_PACKED_STICK_CALIBRATION_SIZE)
+    return 0;
+
+  uint8_t orientation_flags = 0;
+  if (c->invert_x)
+    orientation_flags |= 1u << 0;
+  if (c->invert_y)
+    orientation_flags |= 1u << 1;
+  if (c->swap_xy)
+    orientation_flags |= 1u << 2;
+
+  axes_put_u16(&out[0], c->rest_x);
+  axes_put_u16(&out[2], c->rest_y);
+  axes_put_u16(&out[4], c->min_x);
+  axes_put_u16(&out[6], c->min_y);
+  axes_put_u16(&out[8], c->max_x);
+  axes_put_u16(&out[10], c->max_y);
+  out[12] = orientation_flags;
+
+  return AXES_PACKED_STICK_CALIBRATION_SIZE;
+}
+
+size_t axes_stick_calibration_unpack(struct axes_stick_calibration *c, const uint8_t *in, size_t size)
+{
+  if (size < AXES_PACKED_STICK_CALIBRATION_SIZE)
+    return 0;
+
+  uint8_t orientation_flags = in[12];
+
+  c->rest_x   = axes_get_u16(&in[0]);
+  c->rest_y   = axes_get_u16(&in[2]);
+  c->min_x    = axes_get_u16(&in[4]);
+  c->min_y    = axes_get_u16(&in[6]);
+  c->max_x    = axes_get_u16(&in[8]);
+  c->max_y    = axes_get_u16(&in[10]);
+  c->invert_x = (orientation_flags & (1u << 0)) != 0;
+  c->invert_y = (orientation_flags & (1u << 1)) != 0;
+  c->swap_xy  = (orientation_flags & (1u << 2)) != 0;
+
+  return AXES_PACKED_STICK_CALIBRATION_SIZE;
+}
+
+size_t axes_trigger_shaping_pack(uint8_t *out, size_t size, const struct axes_trigger_shaping *s)
+{
+  if (size < AXES_PACKED_TRIGGER_SHAPING_SIZE)
+    return 0;
+
+  uint8_t deadzone_flags = (uint8_t)(s->deadzone_mode << 2);
+
+  axes_put_u16(&out[0], s->deadzone_inner);
+  axes_put_u16(&out[2], s->deadzone_outer);
+  out[4] = deadzone_flags;
+  axes_put_u16(&out[5], s->response_gamma);
+
+  return AXES_PACKED_TRIGGER_SHAPING_SIZE;
+}
+
+size_t axes_trigger_shaping_unpack(struct axes_trigger_shaping *s, const uint8_t *in, size_t size)
+{
+  if (size < AXES_PACKED_TRIGGER_SHAPING_SIZE)
+    return 0;
+
+  s->deadzone_inner = axes_get_u16(&in[0]);
+  s->deadzone_outer = axes_get_u16(&in[2]);
+  s->deadzone_mode  = (enum axes_deadzone_mode)((in[4] >> 2) & 1u);
+  s->response_gamma = axes_get_u16(&in[5]);
+
+  return AXES_PACKED_TRIGGER_SHAPING_SIZE;
+}
+
+size_t axes_stick_shaping_pack(uint8_t *out, size_t size, const struct axes_stick_shaping *s)
+{
+  if (size < AXES_PACKED_STICK_SHAPING_SIZE)
+    return 0;
+
+  uint8_t deadzone_flags = (uint8_t)(s->deadzone_shape | (s->deadzone_mode << 2));
+  uint8_t gate_flags     = (uint8_t)(s->gate_shape | (s->gate_mode << 2));
+
+  axes_put_u16(&out[0], s->deadzone_inner);
+  axes_put_u16(&out[2], s->deadzone_outer);
+  out[4] = deadzone_flags;
+  axes_put_u16(&out[5], s->response_gamma);
+  out[7] = gate_flags;
+  axes_put_u16(&out[8], s->gate_corner);
+
+  return AXES_PACKED_STICK_SHAPING_SIZE;
+}
+
+size_t axes_stick_shaping_unpack(struct axes_stick_shaping *s, const uint8_t *in, size_t size)
+{
+  if (size < AXES_PACKED_STICK_SHAPING_SIZE)
+    return 0;
+
+  unsigned deadzone_shape = in[4] & 3u;
+  unsigned gate_shape     = in[7] & 3u;
+
+  // Reject shape values that no enumerator claims
+  if (deadzone_shape >= AXES_DEADZONE_SHAPE_COUNT || gate_shape >= AXES_GATE_SHAPE_COUNT)
+    return 0;
+
+  s->deadzone_inner = axes_get_u16(&in[0]);
+  s->deadzone_outer = axes_get_u16(&in[2]);
+  s->deadzone_shape = (enum axes_deadzone_shape)deadzone_shape;
+  s->deadzone_mode  = (enum axes_deadzone_mode)((in[4] >> 2) & 1u);
+  s->response_gamma = axes_get_u16(&in[5]);
+  s->gate_shape     = (enum axes_gate_shape)gate_shape;
+  s->gate_mode      = (enum axes_gate_mode)((in[7] >> 2) & 1u);
+  s->gate_corner    = axes_get_u16(&in[8]);
+
+  return AXES_PACKED_STICK_SHAPING_SIZE;
+}

@@ -14,7 +14,10 @@ void tearDown(void)
 {
 }
 
-static const struct axes_trigger_calibration cal = {.rest = 100, .pressed = 3000};
+static const struct axes_trigger_calibration cal = {
+  .rest    = 100,
+  .pressed = 3000,
+};
 
 static void rest_maps_to_zero(void)
 {
@@ -37,8 +40,10 @@ static void deadzones_rescale_remaining_travel(void)
   // 10% inner and outer deadzones: released inside the inner zone, fully
   // pressed inside the outer zone, and the live band between them stretched
   // back over the full output range.
-  struct axes_trigger_shaping s = {.deadzone_inner = AXES_FULL_SCALE / 10, //
-                                   .deadzone_outer = AXES_FULL_SCALE / 10};
+  struct axes_trigger_shaping s = {
+    .deadzone_inner = AXES_FULL_SCALE / 10, //
+    .deadzone_outer = AXES_FULL_SCALE / 10,
+  };
   struct axes_trigger_transform t;
   axes_trigger_derive(&t, &cal, &s);
 
@@ -53,7 +58,9 @@ static void deadzones_rescale_remaining_travel(void)
 static void gamma_two_quarters_the_midpoint(void)
 {
   // x^2 at half press is a quarter of full output; full press is unaffected.
-  struct axes_trigger_shaping s = {.response_gamma = 2 * AXES_GAMMA_LINEAR};
+  struct axes_trigger_shaping s = {
+    .response_gamma = 2 * AXES_GAMMA_LINEAR,
+  };
   struct axes_trigger_transform t;
   axes_trigger_derive(&t, &cal, &s);
 
@@ -66,9 +73,11 @@ static void unscaled_deadzones_are_position_true(void)
   // Position-true deadzones keep the calibrated mapping between the zones, so
   // mid-travel output matches a deadzone-free config exactly, while readings
   // inside the zones still snap to the ends.
-  struct axes_trigger_shaping s = {.deadzone_inner = AXES_FULL_SCALE / 10,
-                                   .deadzone_outer = AXES_FULL_SCALE / 10,
-                                   .deadzone_mode  = AXES_DEADZONE_UNSCALED};
+  struct axes_trigger_shaping s = {
+    .deadzone_inner = AXES_FULL_SCALE / 10,
+    .deadzone_outer = AXES_FULL_SCALE / 10,
+    .deadzone_mode  = AXES_DEADZONE_UNSCALED,
+  };
   struct axes_trigger_transform t, plain;
   axes_trigger_derive(&t, &cal, &s);
   axes_trigger_derive(&plain, &cal, NULL);
@@ -85,7 +94,10 @@ static void overlapping_deadzones_read_released(void)
   // Each width is inside its documented range, but together they cover the whole
   // travel. With nothing left between them the trigger reads released throughout,
   // rather than running backwards or chattering on a one-count threshold.
-  struct axes_trigger_shaping s = {.deadzone_inner = 3000, .deadzone_outer = 3000};
+  struct axes_trigger_shaping s = {
+    .deadzone_inner = 3000,
+    .deadzone_outer = 3000,
+  };
   struct axes_trigger_transform t;
   axes_trigger_derive(&t, &cal, &s);
 
@@ -97,7 +109,10 @@ static void inverted_install_maps_correctly(void)
 {
   // A trigger whose raw reading falls as it is pressed still maps rest to
   // zero and full press to full scale.
-  struct axes_trigger_calibration inv = {.rest = 3000, .pressed = 100};
+  struct axes_trigger_calibration inv = {
+    .rest    = 3000,
+    .pressed = 100,
+  };
   struct axes_trigger_transform t;
   axes_trigger_derive(&t, &inv, NULL);
 
@@ -110,7 +125,10 @@ static void zero_travel_calibration_is_safe(void)
 {
   // rest == pressed describes a trigger with no measurable travel; it should
   // read released everywhere rather than dividing by zero in derive.
-  struct axes_trigger_calibration dead = {.rest = 2048, .pressed = 2048};
+  struct axes_trigger_calibration dead = {
+    .rest    = 2048,
+    .pressed = 2048,
+  };
   struct axes_trigger_transform t;
   axes_trigger_derive(&t, &dead, NULL);
 
