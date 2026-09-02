@@ -219,6 +219,24 @@ Presets are provided for some useful shapes that can be achieved with an octagon
 
 For other octagonal shapes, corner positions use the same normalized scale as everything else, where `AXES_FULL_SCALE` is a full cardinal deflection. A gate with corners measured at 0.76 of full deflection is `AXES_FULL_SCALE * 0.76`. A corner position of zero is treated as `AXES_OCTAGON_REGULAR`.
 
+## Storage
+
+Convenience functions are provided to efficiently pack calibration and shaping structs in an endianness-independent way. Each struct has a `_pack` and `_unpack` pair, and every record is a fixed size given by the matching `AXES_PACKED_*_SIZE` macro. For example:
+
+```c
+// Pack a stick shaping record into a byte buffer
+struct axes_stick_shaping stick_shape = { ... };
+uint8_t buffer[AXES_PACKED_STICK_SHAPING_SIZE];
+axes_stick_shaping_pack(buffer, sizeof(buffer), &stick_shape);
+
+// Unpack the stick shaping record from a byte buffer
+uint8_t buffer[AXES_PACKED_STICK_SHAPING_SIZE];
+struct axes_stick_shaping stick_shape;
+axes_stick_shaping_unpack(&stick_shape, buffer, sizeof(buffer));
+```
+
+It is recommended to store `AXES_PACKED_VERSION` alongside the packed records and refuse to unpack a blob that does not match.
+
 ## License
 
 Pickaxes is released under the MIT license. See [LICENSE](LICENSE).
