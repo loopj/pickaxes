@@ -52,12 +52,12 @@ struct axes_stick_calibration calibration = {
 struct axes_stick_shaping shaping = {
   .deadzone_inner   = AXES_FULL_SCALE * 0.05,
   .deadzone_outer   = AXES_FULL_SCALE * 0.02,
-  .deadzone_shape   = AXES_DEADZONE_RADIAL,
-  .deadzone_mode    = AXES_DEADZONE_SCALED,
+  .deadzone_shape   = AXES_DEADZONE_SHAPE_RADIAL,
+  .deadzone_mode    = AXES_DEADZONE_MODE_SCALED,
   .response_gamma   = AXES_GAMMA_LINEAR,
-  .gate_shape       = AXES_GATE_OCTAGON,
+  .gate_shape       = AXES_GATE_SHAPE_OCTAGON,
   .gate_corner      = AXES_OCTAGON_N64,
-  .gate_mode        = AXES_GATE_SCALE,
+  .gate_mode        = AXES_GATE_MODE_SCALE,
 };
 
 // Combine calibration and shaping into a transform
@@ -112,7 +112,7 @@ struct axes_trigger_calibration {
 
 A good way to capture these is to prompt the user to release the trigger and record `rest`, then press it all the way and record `pressed`.
 
-There no need to specify an orientation, since it can be determined automatically from the `rest` and `pressed` readings.
+There is no need to specify an orientation, since it can be determined automatically from the `rest` and `pressed` readings.
 
 ## Shaping
 
@@ -130,8 +130,8 @@ Deadzone sizes are set with `deadzone_inner` and `deadzone_outer`. The inner dea
 
 The `deadzone_mode` decides what happens when input leaves the deadzone:
 
-- `AXES_DEADZONE_UNSCALED` - passes input through unchanged, so output matches physical position exactly, at the cost of a jump as the input leaves the zone
-- `AXES_DEADZONE_SCALED` - stretches the remaining travel to cover the full range, so output rises from zero
+- `AXES_DEADZONE_MODE_UNSCALED` - passes input through unchanged, so output matches physical position exactly, at the cost of a jump as the input leaves the zone
+- `AXES_DEADZONE_MODE_SCALED` - stretches the remaining travel to cover the full range, so output rises from zero
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/deadzone-mode-dark.svg">
@@ -143,8 +143,8 @@ The `deadzone_mode` decides what happens when input leaves the deadzone:
 
 For sticks, the `deadzone_shape` decides which area of the stick's travel is considered deadzone:
 
-- `AXES_DEADZONE_AXIAL` - a separate band applied to each axis independently
-- `AXES_DEADZONE_RADIAL` - a circle applied to the stick's distance from center
+- `AXES_DEADZONE_SHAPE_AXIAL` - a separate band applied to each axis independently
+- `AXES_DEADZONE_SHAPE_RADIAL` - a circle applied to the stick's distance from center
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/deadzone-shape-dark.svg">
@@ -176,16 +176,16 @@ Sticks have a physical gate, the shaped opening in a controller's shell or in th
 
 The desired output shape of the gate is chosen with `gate_shape`:
 
-- `AXES_GATE_NONE` - no reshaping, each axis clamped to full scale independently
-- `AXES_GATE_CIRCLE` - full scale at the cardinals, with a round edge between them
-- `AXES_GATE_OCTAGON` - full scale at the cardinals, octagonal, with a tunable corner position
+- `AXES_GATE_SHAPE_NONE` - no reshaping, each axis clamped to full scale independently
+- `AXES_GATE_SHAPE_CIRCLE` - full scale at the cardinals, with a round edge between them
+- `AXES_GATE_SHAPE_OCTAGON` - an octagon with tunable corner positions
 
 #### Gate Mode
 
 The way travel is applied to that shape is chosen with `gate_mode`:
 
-- `AXES_GATE_CLAMP` - treats the virtual gate as a physical restriction, so output tracks position exactly until the stick meets the boundary, then holds there
-- `AXES_GATE_SCALE` - rescales the whole travel onto the gate instead, so the cardinals always reach full scale
+- `AXES_GATE_MODE_CLAMP` - treats the virtual gate as a physical restriction, so output tracks position exactly until the stick meets the boundary, then holds there
+- `AXES_GATE_MODE_SCALE` - rescales the whole travel onto the gate instead, so the cardinals always reach full scale
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/gate-clamp-dark.svg">
@@ -218,6 +218,26 @@ Presets are provided for some useful shapes that can be achieved with an octagon
 - `AXES_OCTAGON_N64` - corners pushed outside the circle, matching an OEM N64 gate
 
 For other octagonal shapes, corner positions use the same normalized scale as everything else, where `AXES_FULL_SCALE` is a full cardinal deflection. A gate with corners measured at 0.76 of full deflection is `AXES_FULL_SCALE * 0.76`. A corner position of zero is treated as `AXES_OCTAGON_REGULAR`.
+
+## Packing
+
+Convenience functions are provided to efficiently pack calibration and shaping structs in an endianness-independent way. Each struct has a `_pack` and `_unpack` pair, and every record is a fixed size given by the matching `AXES_PACKED_*_SIZE` macro. 
+
+For example:
+
+```c
+// Pack a stick shaping record into a byte buffer
+struct axes_stick_shaping stick_shape = { ... };
+uint8_t buffer[AXES_PACKED_STICK_SHAPING_SIZE];
+axes_stick_shaping_pack(buffer, sizeof(buffer), &stick_shape);
+
+// Unpack the stick shaping record from a byte buffer
+uint8_t buffer[AXES_PACKED_STICK_SHAPING_SIZE];
+struct axes_stick_shaping stick_shape;
+axes_stick_shaping_unpack(&stick_shape, buffer, sizeof(buffer));
+```
+
+It is recommended to store `AXES_PACKED_VERSION` alongside the packed records and refuse to unpack a blob that does not match.
 
 ## License
 

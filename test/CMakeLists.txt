@@ -20,3 +20,4 @@ endfunction()
 # Spec tests: named after the README behaviors they pin
 add_axes_test(test_trigger test_trigger.c)
 add_axes_test(test_stick test_stick.c)
+add_axes_test(test_pack test_pack.c)
