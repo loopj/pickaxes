@@ -525,6 +525,10 @@ int axes_trigger_shaping_pack(uint8_t *dest, size_t size, const struct axes_trig
   if (size < AXES_PACKED_TRIGGER_SHAPING_SIZE)
     return -AXES_ERR_SIZE;
 
+  // Reject out of range settings
+  if (src->deadzone_mode >= AXES_DEADZONE_MODE_COUNT)
+    return -AXES_ERR_INVALID;
+
   uint8_t deadzone_flags = (uint8_t)(src->deadzone_mode << 2);
 
   axes_put_u16(&dest[0], src->deadzone_inner);
@@ -553,6 +557,12 @@ int axes_stick_shaping_pack(uint8_t *dest, size_t size, const struct axes_stick_
   if (size < AXES_PACKED_STICK_SHAPING_SIZE)
     return -AXES_ERR_SIZE;
 
+  // Reject out of range settings
+  if (src->deadzone_shape >= AXES_DEADZONE_SHAPE_COUNT || src->deadzone_mode >= AXES_DEADZONE_MODE_COUNT)
+    return -AXES_ERR_INVALID;
+  if (src->gate_shape >= AXES_GATE_SHAPE_COUNT || src->gate_mode >= AXES_GATE_MODE_COUNT)
+    return -AXES_ERR_INVALID;
+
   uint8_t deadzone_flags = (uint8_t)(src->deadzone_shape | (src->deadzone_mode << 2));
   uint8_t gate_flags     = (uint8_t)(src->gate_shape | (src->gate_mode << 2));
 
@@ -574,7 +584,7 @@ int axes_stick_shaping_unpack(struct axes_stick_shaping *dest, const uint8_t *sr
   unsigned deadzone_shape = src[4] & 3u;
   unsigned gate_shape     = src[7] & 3u;
 
-  // Reject shape values that no enumerator claims
+  // Reject out of range shape values
   if (deadzone_shape >= AXES_DEADZONE_SHAPE_COUNT || gate_shape >= AXES_GATE_SHAPE_COUNT)
     return -AXES_ERR_INVALID;
 
