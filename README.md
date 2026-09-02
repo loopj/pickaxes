@@ -219,9 +219,11 @@ Presets are provided for some useful shapes that can be achieved with an octagon
 
 For other octagonal shapes, corner positions use the same normalized scale as everything else, where `AXES_FULL_SCALE` is a full cardinal deflection. A gate with corners measured at 0.76 of full deflection is `AXES_FULL_SCALE * 0.76`. A corner position of zero is treated as `AXES_OCTAGON_REGULAR`.
 
-## Storage
+## Packing
 
-Convenience functions are provided to efficiently pack calibration and shaping structs in an endianness-independent way. Each struct has a `_pack` and `_unpack` pair, and every record is a fixed size given by the matching `AXES_PACKED_*_SIZE` macro. For example:
+Convenience functions are provided to efficiently pack calibration and shaping structs in an endianness-independent way. Each struct has a `_pack` and `_unpack` pair, and every record is a fixed size given by the matching `AXES_PACKED_*_SIZE` macro. 
+
+For example:
 
 ```c
 // Pack a stick shaping record into a byte buffer
