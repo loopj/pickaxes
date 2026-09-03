@@ -10,7 +10,7 @@
 - Inner and outer [deadzones](#deadzones) - axial/radial, scaled/position true
 - Gamma [response curves](#response-curves) for sensitivity tuning
 - [Virtual gates](#virtual-gates) - circular, square, octagonal
-- Plain, portable C99 with no dependencies
+- Plain, freestanding C99 - no libc, no dependencies
 - No dynamic allocation, no global state
 - Integer-only math, no FPU required
 
