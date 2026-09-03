@@ -140,6 +140,68 @@ enum axes_gate_mode {
 #define AXES_CURVE_POINTS 33
 
 /**
+ * Named trigger positions, for prompting through a calibration routine.
+ *
+ * The library does not consume these, they are here so an application and its
+ * host protocol can share one vocabulary for the readings that fill in
+ * @ref axes_trigger_calibration.
+ */
+enum axes_trigger_pose {
+  /** Trigger at rest, giving the `rest` reading */
+  AXES_TRIGGER_POSE_RELEASED,
+
+  /** Trigger held at its stop, giving the `pressed` reading */
+  AXES_TRIGGER_POSE_PRESSED,
+
+  /** Number of trigger poses, not a pose itself */
+  AXES_TRIGGER_POSE_COUNT,
+};
+
+/**
+ * Named stick positions, for prompting through a calibration routine.
+ *
+ * Directions are logical rather than physical, so UP is a full deflection
+ * toward logical +Y however the stick is mounted. The numbering matches the HID
+ * hat switch, running clockwise from zero at up with the centered null state
+ * last.
+ *
+ * The library does not consume these, they are here so an application and its
+ * host protocol can share one vocabulary for the readings that fill in
+ * @ref axes_stick_calibration.
+ */
+enum axes_stick_pose {
+  /** Full deflection toward logical +Y */
+  AXES_STICK_POSE_UP,
+
+  /** Full deflection up and right, resting in the gate's corner if there is one */
+  AXES_STICK_POSE_UP_RIGHT,
+
+  /** Full deflection toward logical +X */
+  AXES_STICK_POSE_RIGHT,
+
+  /** Full deflection down and right, resting in the gate's corner if there is one */
+  AXES_STICK_POSE_DOWN_RIGHT,
+
+  /** Full deflection toward logical -Y */
+  AXES_STICK_POSE_DOWN,
+
+  /** Full deflection down and left, resting in the gate's corner if there is one */
+  AXES_STICK_POSE_DOWN_LEFT,
+
+  /** Full deflection toward logical -X */
+  AXES_STICK_POSE_LEFT,
+
+  /** Full deflection up and left, resting in the gate's corner if there is one */
+  AXES_STICK_POSE_UP_LEFT,
+
+  /** Stick released, giving the `rest_x` and `rest_y` readings */
+  AXES_STICK_POSE_CENTERED,
+
+  /** Number of stick poses, not a pose itself */
+  AXES_STICK_POSE_COUNT,
+};
+
+/**
  * Calibration data for a trigger, or any single-axis input
  */
 struct axes_trigger_calibration {
@@ -336,7 +398,7 @@ int16_t axes_trigger_apply(const struct axes_trigger_transform *transform, uint1
  * Helper function to derive stick orientation from raw readings, updating the calibration
  *
  * @param calibration data to update (rest_x/rest_y must already be set)
- * @param up_x,up_y raw reading while pushed toward logical UP
+ * @param up_x,up_y raw reading while pushed toward logical UP (see @ref axes_stick_pose)
  * @param right_x,right_y raw reading while pushed toward logical RIGHT
  */
 void axes_stick_calibration_orient(struct axes_stick_calibration *calibration, uint16_t up_x, uint16_t up_y,
