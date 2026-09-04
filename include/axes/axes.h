@@ -376,6 +376,17 @@ struct axes_stick_transform {
 };
 
 /**
+ * Fill in a neutral trigger calibration covering the whole ADC range.
+ *
+ * Maps a reading of zero to released and `adc_max` to fully pressed, which is
+ * a reasonable starting point for a trigger that has not been calibrated yet.
+ *
+ * @param calibration destination for the calibration
+ * @param adc_max largest reading the ADC produces, 4095 for a 12-bit ADC
+ */
+void axes_trigger_calibration_default(struct axes_trigger_calibration *calibration, uint16_t adc_max);
+
+/**
  * Derive a trigger transform from calibration and shaping settings.
  *
  * @param transform destination for the derived transform
@@ -393,6 +404,18 @@ void axes_trigger_derive(struct axes_trigger_transform *transform, const struct 
  * @return normalized output in [0, AXES_FULL_SCALE]
  */
 int16_t axes_trigger_apply(const struct axes_trigger_transform *transform, uint16_t raw);
+
+/**
+ * Fill in a neutral stick calibration covering the whole ADC range.
+ *
+ * Rests at the midpoint of the ADC range with travel reaching both ends on
+ * each axis, and no orientation fixups, which is a reasonable starting point
+ * for a stick that has not been calibrated yet.
+ *
+ * @param calibration destination for the calibration
+ * @param adc_max largest reading the ADC produces, 4095 for a 12-bit ADC
+ */
+void axes_stick_calibration_default(struct axes_stick_calibration *calibration, uint16_t adc_max);
 
 /**
  * Helper function to derive stick orientation from raw readings, updating the calibration

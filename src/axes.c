@@ -164,6 +164,13 @@ static inline int stick_deadzone_axis(const struct axes_stick_transform *t, int 
   return value < 0 ? -deflection : deflection;
 }
 
+void axes_trigger_calibration_default(struct axes_trigger_calibration *c, uint16_t adc_max)
+{
+  // Released at zero, fully pressed at the top of the ADC range
+  c->rest    = 0;
+  c->pressed = adc_max;
+}
+
 void axes_trigger_derive(struct axes_trigger_transform *t, const struct axes_trigger_calibration *c,
                          const struct axes_trigger_shaping *s)
 {
@@ -243,6 +250,19 @@ int16_t axes_trigger_apply(const struct axes_trigger_transform *t, uint16_t raw)
     position = axes_curve_eval(t->curve, (int)position);
 
   return (int16_t)position;
+}
+
+void axes_stick_calibration_default(struct axes_stick_calibration *c, uint16_t adc_max)
+{
+  // Rest at the middle of the ADC range, with travel reaching both ends
+  c->rest_x = c->rest_y = (uint16_t)(adc_max / 2);
+  c->min_x = c->min_y = 0;
+  c->max_x = c->max_y = adc_max;
+
+  // Assume the stick is mounted upright, with each axis reading the way round it should
+  c->invert_x = false;
+  c->invert_y = false;
+  c->swap_xy  = false;
 }
 
 void axes_stick_calibration_orient(struct axes_stick_calibration *c, uint16_t up_x, uint16_t up_y, uint16_t right_x,

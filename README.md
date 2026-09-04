@@ -99,6 +99,8 @@ A good way to capture these is to prompt the user to release the stick and recor
 
 You don't need to work out the orientation flags yourself. With the resting position already recorded, you can use `axes_stick_calibration_orient()` to fill in `swap_xy`, `invert_x`, and `invert_y` from the readings at the up and right cardinals.
 
+A reasonable starting point before any calibration has run is `axes_stick_calibration_default()`, which spans the ADC range you hand it, resting at the midpoint with travel out to both ends.
+
 ### Trigger Calibration
 
 Pickaxes requires the resting and fully-pressed extents of each trigger:
@@ -113,6 +115,8 @@ struct axes_trigger_calibration {
 A good way to capture these is to prompt the user to release the trigger and record `rest`, then press it all the way and record `pressed`.
 
 There is no need to specify an orientation, since it can be determined automatically from the `rest` and `pressed` readings.
+
+A reasonable starting point before any calibration has run is `axes_trigger_calibration_default()`, which spans the ADC range you hand it, released at the bottom and fully pressed at the top.
 
 ## Shaping
 
