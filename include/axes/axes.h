@@ -614,9 +614,9 @@ void axes_stick_calibration_session_sweep_sample(struct axes_stick_calibration_s
  * Whether a sweep has reached every direction around the stick.
  *
  * Directions are physical, since orientation is not known until the session
- * ends. Coverage is judged against the range seen so far, so it can drop back
- * to false if the stick later reaches further in one direction. Check it when
- * the application is ready to finish rather than latching the first true.
+ * ends. Each direction has to be reached at close to the range seen on that
+ * side of rest, so a small circuit near rest does not count, and a sweep that
+ * was one can read incomplete again once the stick reaches the real rim.
  *
  * @param session session in progress
  * @return true once every one of the AXES_SWEEP_SECTORS directions has been reached
