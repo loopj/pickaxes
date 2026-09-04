@@ -16,6 +16,9 @@ enum axes_error {
 
   /** An input holds a value the library does not accept */
   AXES_ERR_INVALID,
+
+  /** A calibration session is missing a pose it needs */
+  AXES_ERR_INCOMPLETE,
 };
 
 /*
@@ -140,10 +143,16 @@ enum axes_gate_mode {
 #define AXES_CURVE_POINTS 33
 
 /**
+ * Number of directions a stick sweep tracks coverage over, each 22.5 degrees
+ * wide. Fixed, since the sector math splits each octant in two.
+ */
+#define AXES_SWEEP_SECTORS 16
+
+/**
  * Named trigger positions, for prompting through a calibration routine.
  *
- * The library does not consume these, they are here so an application and its
- * host protocol can share one vocabulary for the readings that fill in
+ * Calibration sessions take readings tagged with these, so an application and
+ * its host protocol can share one vocabulary for the readings that fill in
  * @ref axes_trigger_calibration.
  */
 enum axes_trigger_pose {
@@ -165,8 +174,8 @@ enum axes_trigger_pose {
  * hat switch, running clockwise from zero at up with the centered null state
  * last.
  *
- * The library does not consume these, they are here so an application and its
- * host protocol can share one vocabulary for the readings that fill in
+ * Calibration sessions take readings tagged with these, so an application and
+ * its host protocol can share one vocabulary for the readings that fill in
  * @ref axes_stick_calibration.
  */
 enum axes_stick_pose {
@@ -235,6 +244,57 @@ struct axes_stick_calibration {
 
   /** Stick mounted at 90-degrees, physical X feeds logical Y and vice versa */
   bool swap_xy;
+};
+
+/**
+ * Working state for a trigger calibration session.
+ *
+ * Accumulates readings while an application walks the user through the
+ * trigger poses, then resolves them into an @ref axes_trigger_calibration.
+ * Populate using axes_trigger_calibration_session_begin(). The fields are
+ * working state, so treat them as opaque.
+ */
+struct axes_trigger_calibration_session {
+  // Smallest travel a usable trigger must show, from the ADC range handed to begin
+  uint16_t min_travel;
+
+  // Released readings are averaged, with the count saturating rather than wrapping
+  uint32_t rest_sum;
+  uint16_t rest_count;
+
+  // The pressed reading farthest from rest so far
+  bool pressed_seen;
+  uint16_t pressed;
+};
+
+/**
+ * Working state for a stick calibration session.
+ *
+ * Accumulates readings while an application walks the user through the stick
+ * poses, and optionally a sweep around the rim, then resolves them into an
+ * @ref axes_stick_calibration. Populate using
+ * axes_stick_calibration_session_begin(). The fields are working state, so
+ * treat them as opaque.
+ */
+struct axes_stick_calibration_session {
+  // Smallest deflection that counts as leaving rest, from the ADC range handed to begin
+  uint16_t min_reach;
+
+  // Centered readings are averaged, with the count saturating rather than wrapping
+  uint32_t rest_sum_x, rest_sum_y;
+  uint16_t rest_count;
+
+  // Extents, widened by every deflected pose and every sweep sample
+  uint16_t min_x, min_y, max_x, max_y;
+
+  // The UP and RIGHT readings farthest from rest so far, which the orientation comes from
+  bool up_seen, right_seen;
+  uint16_t up_x, up_y, right_x, right_y;
+
+  // Sweep state, with rest snapshotted at sweep_begin so samples need no divide
+  bool sweep_active;
+  uint16_t sweep_rest_x, sweep_rest_y;
+  uint16_t sweep_reach[AXES_SWEEP_SECTORS];
 };
 
 /**
@@ -406,6 +466,48 @@ void axes_trigger_derive(struct axes_trigger_transform *transform, const struct 
 int16_t axes_trigger_apply(const struct axes_trigger_transform *transform, uint16_t raw);
 
 /**
+ * Start a trigger calibration session.
+ *
+ * Clears any readings from a previous session. The ADC range sets how much
+ * travel a trigger must show before its calibration is accepted.
+ *
+ * @param session session to start
+ * @param adc_max largest reading the ADC produces, 4095 for a 12-bit ADC
+ */
+void axes_trigger_calibration_session_begin(struct axes_trigger_calibration_session *session, uint16_t adc_max);
+
+/**
+ * Record a raw reading taken while the trigger is held in a pose.
+ *
+ * Poses may repeat, and capturing the same pose many times is encouraged. Rest
+ * is a zero point, so the released pose is averaged over every reading, while
+ * fully pressed is an extent, so it keeps whichever reading sits farthest from
+ * rest. Released must be captured before pressed, since rest decides which way
+ * the trigger reads.
+ *
+ * @param session session in progress
+ * @param pose the pose the trigger is held in (see @ref axes_trigger_pose)
+ * @param raw raw ADC reading
+ * @return 0 on success, negative axes_error otherwise
+ */
+int axes_trigger_calibration_session_capture(struct axes_trigger_calibration_session *session,
+                                             enum axes_trigger_pose pose, uint16_t raw);
+
+/**
+ * Resolve a trigger calibration session into calibration data.
+ *
+ * The session is left untouched, so an application can preview the result and
+ * keep capturing. Fails with AXES_ERR_INCOMPLETE if a pose is missing, and
+ * AXES_ERR_INVALID if the readings show too little travel to be usable.
+ *
+ * @param session session to resolve
+ * @param calibration destination for the calibration, untouched on failure
+ * @return 0 on success, negative axes_error otherwise
+ */
+int axes_trigger_calibration_session_end(const struct axes_trigger_calibration_session *session,
+                                         struct axes_trigger_calibration *calibration);
+
+/**
  * Fill in a neutral stick calibration covering the whole ADC range.
  *
  * Rests at the midpoint of the ADC range with travel reaching both ends on
@@ -448,6 +550,95 @@ void axes_stick_derive(struct axes_stick_transform *transform, const struct axes
  */
 void axes_stick_apply(const struct axes_stick_transform *transform, uint16_t raw_x, uint16_t raw_y, int16_t *out_x,
                       int16_t *out_y);
+
+/**
+ * Start a stick calibration session.
+ *
+ * Clears any readings from a previous session, including a sweep. The ADC
+ * range sets how far the stick must deflect before a reading counts as leaving
+ * rest, both for sweep coverage and for accepting the calibration at the end.
+ *
+ * @param session session to start
+ * @param adc_max largest reading the ADC produces, 4095 for a 12-bit ADC
+ */
+void axes_stick_calibration_session_begin(struct axes_stick_calibration_session *session, uint16_t adc_max);
+
+/**
+ * Record a raw reading taken while the stick is held in a pose.
+ *
+ * Poses may repeat, and capturing the same pose many times is encouraged. Rest
+ * is a zero point, so the centered pose is averaged over every reading, while
+ * every other pose is an extent, so it only ever widens the range of travel.
+ * The UP and RIGHT poses also keep whichever reading sits farthest from rest,
+ * which the orientation is worked out from. Centered must be captured before
+ * any other pose, since deflections are judged against rest. After that poses
+ * may arrive in any order.
+ *
+ * @param session session in progress
+ * @param pose the pose the stick is held in (see @ref axes_stick_pose)
+ * @param raw_x raw ADC reading for physical X
+ * @param raw_y raw ADC reading for physical Y
+ * @return 0 on success, negative axes_error otherwise
+ */
+int axes_stick_calibration_session_capture(struct axes_stick_calibration_session *session, enum axes_stick_pose pose,
+                                           uint16_t raw_x, uint16_t raw_y);
+
+/**
+ * Start sweeping the stick around its rim.
+ *
+ * A sweep widens the range of travel from a stream of readings rather than
+ * from individual poses, and tracks which directions the stick has reached so
+ * the application can tell when it has been all the way round. Starting a
+ * sweep clears coverage from any previous sweep but keeps the range. Centered
+ * must have been captured first.
+ *
+ * @param session session in progress
+ * @return 0 on success, negative axes_error otherwise
+ */
+int axes_stick_calibration_session_sweep_begin(struct axes_stick_calibration_session *session);
+
+/**
+ * Feed a raw reading into a sweep in progress.
+ *
+ * Call on every poll while the user rotates the stick around its rim. Readings
+ * are ignored when no sweep is in progress.
+ *
+ * @param session session in progress
+ * @param raw_x raw ADC reading for physical X
+ * @param raw_y raw ADC reading for physical Y
+ */
+void axes_stick_calibration_session_sweep_sample(struct axes_stick_calibration_session *session, uint16_t raw_x,
+                                                 uint16_t raw_y);
+
+/**
+ * Whether a sweep has reached every direction around the stick.
+ *
+ * Directions are physical, since orientation is not known until the session
+ * ends. Coverage is judged against the range seen so far, so it can drop back
+ * to false if the stick later reaches further in one direction. Check it when
+ * the application is ready to finish rather than latching the first true.
+ *
+ * @param session session in progress
+ * @return true once every one of the AXES_SWEEP_SECTORS directions has been reached
+ */
+bool axes_stick_calibration_session_sweep_complete(const struct axes_stick_calibration_session *session);
+
+/**
+ * Resolve a stick calibration session into calibration data.
+ *
+ * Fills in the resting position and range of travel, and derives the
+ * orientation flags from the UP and RIGHT poses. The session is left
+ * untouched, so an application can preview the result and keep capturing.
+ * Fails with AXES_ERR_INCOMPLETE if the centered, UP or RIGHT poses are
+ * missing, and AXES_ERR_INVALID if some side of rest has too little travel to
+ * be usable or the UP and RIGHT readings sit too close to rest to orient from.
+ *
+ * @param session session to resolve
+ * @param calibration destination for the calibration, untouched on failure
+ * @return 0 on success, negative axes_error otherwise
+ */
+int axes_stick_calibration_session_end(const struct axes_stick_calibration_session *session,
+                                       struct axes_stick_calibration *calibration);
 
 /**
  * Pack a trigger calibration into its portable byte layout.
