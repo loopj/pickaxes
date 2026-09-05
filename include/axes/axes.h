@@ -149,6 +149,26 @@ enum axes_gate_mode {
 #define AXES_SWEEP_SECTORS 16
 
 /**
+ * Readings a sweep needs in every direction before it reports complete.
+ *
+ * A rushed sweep lands only a couple of readings near each cardinal and misses
+ * the furthest point, so a sweep is judged on how much it saw rather than on
+ * how far the stick travelled. A user sweeping quickly is asked for more
+ * rotations, which costs the same in time as one slow one.
+ */
+#define AXES_SWEEP_MIN_SAMPLES 8
+
+/**
+ * Complete rotations a sweep needs before it reports complete.
+ *
+ * Pushing the stick out from rest banks readings in whichever direction the
+ * user started in, so a single rotation can finish a sector short of closing
+ * the circle, leaving that slice measured only by the push out. Asking for a
+ * second rotation closes it.
+ */
+#define AXES_SWEEP_MIN_ROTATIONS 2
+
+/**
  * Named trigger positions, for prompting through a calibration routine.
  *
  * Calibration sessions take readings tagged with these, so an application and
@@ -295,6 +315,13 @@ struct axes_stick_calibration_session {
   bool sweep_active;
   uint16_t sweep_rest_x, sweep_rest_y;
   uint16_t sweep_reach[AXES_SWEEP_SECTORS];
+
+  // Readings taken in each direction, saturating, so a rushed sweep is asked for more
+  uint8_t sweep_samples[AXES_SWEEP_SECTORS];
+
+  // Directions reached since the current rotation began, and rotations closed so far
+  uint16_t sweep_rotation_mask;
+  uint8_t sweep_rotations;
 };
 
 /**
@@ -616,7 +643,10 @@ void axes_stick_calibration_session_sweep_sample(struct axes_stick_calibration_s
  * Directions are physical, since orientation is not known until the session
  * ends. Each direction has to be reached at close to the range seen on that
  * side of rest, so a small circuit near rest does not count, and a sweep that
- * was one can read incomplete again once the stick reaches the real rim.
+ * was one can read incomplete again once the stick reaches the real rim. Each
+ * direction also has to have been sampled AXES_SWEEP_MIN_SAMPLES times, so a
+ * stick swept too quickly to be measured properly asks for more rotations, and
+ * AXES_SWEEP_MIN_ROTATIONS circles have to have been closed.
  *
  * @param session session in progress
  * @return true once every one of the AXES_SWEEP_SECTORS directions has been reached

@@ -624,8 +624,12 @@ void axes_stick_calibration_session_begin(struct axes_stick_calibration_session 
   // No sweep in progress, so samples are ignored until one begins
   s->sweep_active = false;
   s->sweep_rest_x = s->sweep_rest_y = 0;
-  for (int i = 0; i < AXES_SWEEP_SECTORS; i++)
-    s->sweep_reach[i] = 0;
+  for (int i = 0; i < AXES_SWEEP_SECTORS; i++) {
+    s->sweep_reach[i]   = 0;
+    s->sweep_samples[i] = 0;
+  }
+  s->sweep_rotation_mask = 0;
+  s->sweep_rotations     = 0;
 }
 
 int axes_stick_calibration_session_capture(struct axes_stick_calibration_session *s, enum axes_stick_pose pose,
@@ -672,9 +676,13 @@ int axes_stick_calibration_session_sweep_begin(struct axes_stick_calibration_ses
   s->sweep_rest_y = (uint16_t)session_rest_average(s->rest_sum_y, s->rest_count);
 
   // Fresh coverage, though the range carries over since a full restart is begin
-  for (int i = 0; i < AXES_SWEEP_SECTORS; i++)
-    s->sweep_reach[i] = 0;
-  s->sweep_active = true;
+  for (int i = 0; i < AXES_SWEEP_SECTORS; i++) {
+    s->sweep_reach[i]   = 0;
+    s->sweep_samples[i] = 0;
+  }
+  s->sweep_rotation_mask = 0;
+  s->sweep_rotations     = 0;
+  s->sweep_active        = true;
 
   return 0;
 }
@@ -697,15 +705,37 @@ void axes_stick_calibration_session_sweep_sample(struct axes_stick_calibration_s
   int ax = axes_iabs(dx), ay = axes_iabs(dy);
   int reach = ax > ay ? ax : ay;
 
+  // Readings that never left rest say nothing about where the rim is
+  if (reach < s->min_reach)
+    return;
+
   // Coverage only ever grows, so each sector keeps the furthest it has seen
   int sector = stick_session_sector(dx, dy);
   if (reach > s->sweep_reach[sector])
     s->sweep_reach[sector] = (uint16_t)reach;
+
+  // Count how well each direction was measured, against the fixed noise floor so it cannot go stale
+  if (s->sweep_samples[sector] < UINT8_MAX)
+    s->sweep_samples[sector]++;
+
+  // Rotations are counted by watching every direction come round again. Only this mask
+  // resets, so no measurement is lost, and readings banked while the stick was pushed out
+  // from rest can only ever count toward the first rotation rather than closing a later one
+  s->sweep_rotation_mask |= (uint16_t)(1u << sector);
+  if (s->sweep_rotation_mask == (uint16_t)((1u << AXES_SWEEP_SECTORS) - 1)) {
+    s->sweep_rotation_mask = 0;
+    if (s->sweep_rotations < UINT8_MAX)
+      s->sweep_rotations++;
+  }
 }
 
 bool axes_stick_calibration_session_sweep_complete(const struct axes_stick_calibration_session *s)
 {
   if (!s->sweep_active)
+    return false;
+
+  // Enough circles closed, so no slice is left measured only by the push out from rest
+  if (s->sweep_rotations < AXES_SWEEP_MIN_ROTATIONS)
     return false;
 
   // How far the range reaches from rest on each side, +X, +Y, -X, -Y
@@ -725,6 +755,10 @@ bool axes_stick_calibration_session_sweep_complete(const struct axes_stick_calib
 
     // Covered once its best reading is past the noise floor and at least half way out on that side
     if (reach < s->min_reach || reach * 2 < side[nearest])
+      return false;
+
+    // And once the direction was sampled enough to trust that the best reading found the rim
+    if (s->sweep_samples[i] < AXES_SWEEP_MIN_SAMPLES)
       return false;
   }
 

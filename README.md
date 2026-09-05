@@ -148,7 +148,7 @@ axes_stick_calibration_session_end(&session, &calibration);
 
 Capture the centered/resting pose first, since every other reading is judged by its distance from rest. After that poses can arrive in any order and as often as you like.
 
-The sweep captures the range of travel, and reports complete once the stick has reached every direction around rest. Each direction has to be reached at close to the full range, so a small circuit near rest does not count.
+The sweep captures the range of travel, and reports complete once the stick has been all the way round at least twice, reaching close to the full range in every direction.
 
 Trigger sessions work the same way with the poses in `enum axes_trigger_pose`, and have no sweep.
 
