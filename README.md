@@ -95,9 +95,9 @@ struct axes_stick_calibration {
 };
 ```
 
-A good way to capture these is to prompt the user to release the stick and record `rest_x` and `rest_y`, then push it to each cardinal in turn, recording the reading at each. Rotating the stick slowly around its full travel 2-3 times, while sampling continuously, captures `min` and `max` reliably, though the cardinal readings alone are probably good enough if the stick is mounted at a 90-degree increment.
+The easiest way to capture these is a [calibration session](#calibration-sessions), which fills in the whole struct from readings tagged with the poses in `enum axes_stick_pose`.
 
-You don't need to work out the orientation flags yourself. With the resting position already recorded, you can use `axes_stick_calibration_orient()` to fill in `swap_xy`, `invert_x`, and `invert_y` from the readings at the up and right cardinals.
+To do it by hand, record `rest_x` and `rest_y` with the stick released, then push it to each cardinal in turn for `min` and `max`, or rotate it slowly around its full travel a few times while sampling. With the resting position recorded, `axes_stick_calibration_orient()` fills in the orientation flags from the readings at the up and right cardinals.
 
 A reasonable starting point before any calibration has run is `axes_stick_calibration_default()`, which spans the ADC range you hand it, resting at the midpoint with travel out to both ends.
 
@@ -112,11 +112,45 @@ struct axes_trigger_calibration {
 };
 ```
 
-A good way to capture these is to prompt the user to release the trigger and record `rest`, then press it all the way and record `pressed`.
+A [calibration session](#calibration-sessions) captures these from the poses in `enum axes_trigger_pose`. By hand, record `rest` with the trigger released and `pressed` with it held all the way down.
 
 There is no need to specify an orientation, since it can be determined automatically from the `rest` and `pressed` readings.
 
 A reasonable starting point before any calibration has run is `axes_trigger_calibration_default()`, which spans the ADC range you hand it, released at the bottom and fully pressed at the top.
+
+### Calibration Sessions
+
+Pickaxes provides helpers for filling in calibration structs by running a calibration session. Feed it raw readings tagged with the pose the user is holding, and it produces a calibration at the end.
+
+```c
+struct axes_stick_calibration_session session;
+axes_stick_calibration_session_begin(&session, ADC_MAX);
+
+// Capture the centered pose while the user holds the stick still
+while (holding(AXES_STICK_POSE_CENTERED))
+  axes_stick_calibration_session_capture(&session, AXES_STICK_POSE_CENTERED, adc_read(PIN_SX), adc_read(PIN_SY));
+
+// Then up and right, which the orientation is worked out from
+while (holding(AXES_STICK_POSE_UP))
+  axes_stick_calibration_session_capture(&session, AXES_STICK_POSE_UP, adc_read(PIN_SX), adc_read(PIN_SY));
+while (holding(AXES_STICK_POSE_RIGHT))
+  axes_stick_calibration_session_capture(&session, AXES_STICK_POSE_RIGHT, adc_read(PIN_SX), adc_read(PIN_SY));
+
+// Sweep the stick around its rim until every direction has been reached
+axes_stick_calibration_session_sweep_begin(&session);
+while (!axes_stick_calibration_session_sweep_complete(&session))
+  axes_stick_calibration_session_sweep_sample(&session, adc_read(PIN_SX), adc_read(PIN_SY));
+
+// Resolve the readings into a calibration
+struct axes_stick_calibration calibration;
+axes_stick_calibration_session_end(&session, &calibration);
+```
+
+Capture the centered/resting pose first, since every other reading is judged by its distance from rest. After that poses can arrive in any order and as often as you like.
+
+The sweep captures the range of travel, and reports complete once the stick has been all the way round at least twice, reaching close to the full range in every direction.
+
+Trigger sessions work the same way with the poses in `enum axes_trigger_pose`, and have no sweep.
 
 ## Shaping
 

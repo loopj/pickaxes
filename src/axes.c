@@ -14,6 +14,13 @@
 // sqrt(2) in Q15, for measuring how far an octagon's corners reach
 #define AXES_SQRT2_Q15 46341
 
+// tan(22.5 degrees) in Q15, for splitting a sweep octant into two sectors
+#define AXES_TAN_22_5_Q15 13573
+
+// Least movement from rest a session accepts, as a shift of the ADC range, so a sixty-fourth of it.
+// Only there to sit above ADC noise, since a stick may well use a small slice of the range
+#define AXES_SESSION_MIN_TRAVEL_SHIFT 6
+
 // Smallest octagon corner a gate is baked from, since a tighter one makes gate_k
 // huge and the multiply in apply would leave int32 behind
 #define AXES_GATE_CORNER_MIN (AXES_FULL_SCALE / 16)
@@ -252,6 +259,78 @@ int16_t axes_trigger_apply(const struct axes_trigger_transform *t, uint16_t raw)
   return (int16_t)position;
 }
 
+// Least movement from rest a session accepts, never zero so noise alone cannot pass
+static inline uint16_t session_min_travel(uint16_t adc_max)
+{
+  uint16_t travel = adc_max >> AXES_SESSION_MIN_TRAVEL_SHIFT;
+  return travel ? travel : 1;
+}
+
+// Average a session's accumulated rest readings, rounded to nearest
+static inline int session_rest_average(uint32_t sum, uint16_t count)
+{
+  return (int)((sum + count / 2) / count);
+}
+
+void axes_trigger_calibration_session_begin(struct axes_trigger_calibration_session *s, uint16_t adc_max)
+{
+  s->min_travel   = session_min_travel(adc_max);
+  s->rest_sum     = 0;
+  s->rest_count   = 0;
+  s->pressed_seen = false;
+  s->pressed      = 0;
+}
+
+int axes_trigger_calibration_session_capture(struct axes_trigger_calibration_session *s, enum axes_trigger_pose pose,
+                                             uint16_t raw)
+{
+  if ((unsigned)pose >= AXES_TRIGGER_POSE_COUNT)
+    return -AXES_ERR_INVALID;
+
+  if (pose == AXES_TRIGGER_POSE_RELEASED) {
+    // Rest is a zero point, so it is averaged, with the count held short of wrapping
+    if (s->rest_count < UINT16_MAX) {
+      s->rest_sum += raw;
+      s->rest_count++;
+    }
+    return 0;
+  }
+
+  // Rest decides which way the trigger reads, so it has to come first
+  if (s->rest_count == 0)
+    return -AXES_ERR_INCOMPLETE;
+
+  // Pressed is an extent, so the reading farthest from rest wins
+  int rest = session_rest_average(s->rest_sum, s->rest_count);
+  if (!s->pressed_seen || axes_iabs((int)raw - rest) > axes_iabs((int)s->pressed - rest)) {
+    s->pressed      = raw;
+    s->pressed_seen = true;
+  }
+
+  return 0;
+}
+
+int axes_trigger_calibration_session_end(const struct axes_trigger_calibration_session *s,
+                                         struct axes_trigger_calibration *c)
+{
+  // Both poses are needed before there is anything to resolve
+  if (s->rest_count == 0 || !s->pressed_seen)
+    return -AXES_ERR_INCOMPLETE;
+
+  // Rest is the average of every released reading
+  int rest = session_rest_average(s->rest_sum, s->rest_count);
+
+  // A trigger that barely moved would derive to a hair trigger, or nothing at all
+  if (axes_iabs((int)s->pressed - rest) < s->min_travel)
+    return -AXES_ERR_INVALID;
+
+  // Pressed is the reading that landed farthest from rest
+  c->rest    = (uint16_t)rest;
+  c->pressed = s->pressed;
+
+  return 0;
+}
+
 void axes_stick_calibration_default(struct axes_stick_calibration *c, uint16_t adc_max)
 {
   // Rest at the middle of the ADC range, with travel reaching both ends
@@ -268,16 +347,20 @@ void axes_stick_calibration_default(struct axes_stick_calibration *c, uint16_t a
 void axes_stick_calibration_orient(struct axes_stick_calibration *c, uint16_t up_x, uint16_t up_y, uint16_t right_x,
                                    uint16_t right_y)
 {
+  // Where right and up landed relative to rest, on each raw axis
   int rx = (int)right_x - (int)c->rest_x;
   int ry = (int)right_y - (int)c->rest_y;
   int ux = (int)up_x - (int)c->rest_x;
   int uy = (int)up_y - (int)c->rest_y;
 
+  // A right push that moved raw Y more than raw X means the stick is mounted sideways
   c->swap_xy = axes_iabs(ry) > axes_iabs(rx);
   if (c->swap_xy) {
+    // Sideways, so logical X reads from raw Y and logical Y from raw X, each inverted if it fell below rest
     c->invert_x = ry < 0;
     c->invert_y = ux < 0;
   } else {
+    // Upright, so each logical axis reads from its own raw axis, inverted if it fell below rest
     c->invert_x = rx < 0;
     c->invert_y = uy < 0;
   }
@@ -460,6 +543,262 @@ void axes_stick_apply(const struct axes_stick_transform *t, uint16_t raw_x, uint
   // Clamp per axis and write
   *out_x = (int16_t)axes_iclamp(shaped_x, -AXES_FULL_SCALE, AXES_FULL_SCALE);
   *out_y = (int16_t)axes_iclamp(shaped_y, -AXES_FULL_SCALE, AXES_FULL_SCALE);
+}
+
+// Widen a range to take in a value
+static inline void axes_widen(uint16_t *lo, uint16_t *hi, uint16_t value)
+{
+  if (value < *lo)
+    *lo = value;
+  if (value > *hi)
+    *hi = value;
+}
+
+// Widen a session's range of travel to take in a reading
+static inline void stick_session_widen(struct axes_stick_calibration_session *s, uint16_t x, uint16_t y)
+{
+  axes_widen(&s->min_x, &s->max_x, x);
+  axes_widen(&s->min_y, &s->max_y, y);
+}
+
+// How far a reading sits from the rest seen so far, along whichever axis moved more
+static int stick_session_deflection(const struct axes_stick_calibration_session *s, uint16_t x, uint16_t y)
+{
+  int dx = axes_iabs((int)x - session_rest_average(s->rest_sum_x, s->rest_count));
+  int dy = axes_iabs((int)y - session_rest_average(s->rest_sum_y, s->rest_count));
+  return dx > dy ? dx : dy;
+}
+
+// Keep whichever of a pose's stored and new readings sits farther from rest
+static void stick_session_keep_farthest(const struct axes_stick_calibration_session *s, bool *seen, uint16_t *kept_x,
+                                        uint16_t *kept_y, uint16_t x, uint16_t y)
+{
+  if (*seen) {
+    // Later readings only replace the kept one when they sit farther from rest
+    int kept = stick_session_deflection(s, *kept_x, *kept_y);
+    if (stick_session_deflection(s, x, y) <= kept)
+      return;
+  }
+
+  *kept_x = x;
+  *kept_y = y;
+  *seen   = true;
+}
+
+// Which of the AXES_SWEEP_SECTORS directions a deflection from rest points in, counter-clockwise from physical +X
+static int stick_session_sector(int dx, int dy)
+{
+  // Fold into the first octant, where the major axis is whichever moved more
+  int ax = axes_iabs(dx), ay = axes_iabs(dy);
+  int major = ax > ay ? ax : ay;
+  int minor = ax > ay ? ay : ax;
+
+  // Quadrants run counter-clockwise from +X, with zero counted as positive
+  int quadrant = dx < 0 ? (dy < 0 ? 2 : 1) : (dy < 0 ? 3 : 0);
+
+  // Octants likewise, with the half nearer +Y coming second in even quadrants and first in odd ones
+  int octant = 2 * quadrant + ((ay > ax) ^ (quadrant & 1));
+
+  // Split each octant at 22.5 degrees, the same flip keeping the sectors in angular order
+  bool near_diagonal = ((uint32_t)minor << 15) > (uint32_t)major * AXES_TAN_22_5_Q15;
+  return 2 * octant + (near_diagonal ^ (octant & 1));
+}
+
+void axes_stick_calibration_session_begin(struct axes_stick_calibration_session *s, uint16_t adc_max)
+{
+  // Noise floor, scaled to the ADC so it means the same on any resolution
+  s->min_reach = session_min_travel(adc_max);
+
+  // No rest yet, which also blocks every other pose until one arrives
+  s->rest_sum_x = s->rest_sum_y = 0;
+  s->rest_count                 = 0;
+
+  // The range starts inside out, so the first reading sets both ends
+  s->min_x = s->min_y = UINT16_MAX;
+  s->max_x = s->max_y = 0;
+
+  // No orientation poses yet, so end has nothing to orient from
+  s->up_seen = s->right_seen = false;
+  s->up_x = s->up_y = s->right_x = s->right_y = 0;
+
+  // No sweep in progress, so samples are ignored until one begins
+  s->sweep_active = false;
+  s->sweep_rest_x = s->sweep_rest_y = 0;
+  for (int i = 0; i < AXES_SWEEP_SECTORS; i++) {
+    s->sweep_reach[i]   = 0;
+    s->sweep_samples[i] = 0;
+  }
+  s->sweep_rotation_mask = 0;
+  s->sweep_rotations     = 0;
+}
+
+int axes_stick_calibration_session_capture(struct axes_stick_calibration_session *s, enum axes_stick_pose pose,
+                                           uint16_t raw_x, uint16_t raw_y)
+{
+  if ((unsigned)pose >= AXES_STICK_POSE_COUNT)
+    return -AXES_ERR_INVALID;
+
+  if (pose == AXES_STICK_POSE_CENTERED) {
+    // Rest is a zero point, so it is averaged, with the count held short of wrapping
+    if (s->rest_count < UINT16_MAX) {
+      s->rest_sum_x += raw_x;
+      s->rest_sum_y += raw_y;
+      s->rest_count++;
+    }
+    return 0;
+  }
+
+  // Deflections are judged against rest, so it has to come first
+  if (s->rest_count == 0)
+    return -AXES_ERR_INCOMPLETE;
+
+  // Every deflected pose is an extent, so it only ever widens the range
+  stick_session_widen(s, raw_x, raw_y);
+
+  // Orientation is worked out from up and right, so keep their farthest readings
+  if (pose == AXES_STICK_POSE_UP) {
+    stick_session_keep_farthest(s, &s->up_seen, &s->up_x, &s->up_y, raw_x, raw_y);
+  } else if (pose == AXES_STICK_POSE_RIGHT) {
+    stick_session_keep_farthest(s, &s->right_seen, &s->right_x, &s->right_y, raw_x, raw_y);
+  }
+
+  return 0;
+}
+
+int axes_stick_calibration_session_sweep_begin(struct axes_stick_calibration_session *s)
+{
+  // Directions are measured from rest, so it has to come first
+  if (s->rest_count == 0)
+    return -AXES_ERR_INCOMPLETE;
+
+  // Snapshot rest, so samples need no divide and a later centered capture cannot shift the sectors
+  s->sweep_rest_x = (uint16_t)session_rest_average(s->rest_sum_x, s->rest_count);
+  s->sweep_rest_y = (uint16_t)session_rest_average(s->rest_sum_y, s->rest_count);
+
+  // Fresh coverage, though the range carries over since a full restart is begin
+  for (int i = 0; i < AXES_SWEEP_SECTORS; i++) {
+    s->sweep_reach[i]   = 0;
+    s->sweep_samples[i] = 0;
+  }
+  s->sweep_rotation_mask = 0;
+  s->sweep_rotations     = 0;
+  s->sweep_active        = true;
+
+  return 0;
+}
+
+void axes_stick_calibration_session_sweep_sample(struct axes_stick_calibration_session *s, uint16_t raw_x,
+                                                 uint16_t raw_y)
+{
+  // Samples outside a sweep have no rest to be measured from
+  if (!s->sweep_active)
+    return;
+
+  // Every sample is an extent, so it only ever widens the range
+  stick_session_widen(s, raw_x, raw_y);
+
+  // Deflection from the rest snapshotted when the sweep began
+  int dx = (int)raw_x - s->sweep_rest_x;
+  int dy = (int)raw_y - s->sweep_rest_y;
+
+  // Reach is measured along whichever axis moved more, matching how complete judges it
+  int ax = axes_iabs(dx), ay = axes_iabs(dy);
+  int reach = ax > ay ? ax : ay;
+
+  // Readings that never left rest say nothing about where the rim is
+  if (reach < s->min_reach)
+    return;
+
+  // Coverage only ever grows, so each sector keeps the furthest it has seen
+  int sector = stick_session_sector(dx, dy);
+  if (reach > s->sweep_reach[sector])
+    s->sweep_reach[sector] = (uint16_t)reach;
+
+  // Count how well each direction was measured, against the fixed noise floor so it cannot go stale
+  if (s->sweep_samples[sector] < UINT8_MAX)
+    s->sweep_samples[sector]++;
+
+  // Rotations are counted by watching every direction come round again. Only this mask
+  // resets, so no measurement is lost, and readings banked while the stick was pushed out
+  // from rest can only ever count toward the first rotation rather than closing a later one
+  s->sweep_rotation_mask |= (uint16_t)(1u << sector);
+  if (s->sweep_rotation_mask == (uint16_t)((1u << AXES_SWEEP_SECTORS) - 1)) {
+    s->sweep_rotation_mask = 0;
+    if (s->sweep_rotations < UINT8_MAX)
+      s->sweep_rotations++;
+  }
+}
+
+bool axes_stick_calibration_session_sweep_complete(const struct axes_stick_calibration_session *s)
+{
+  if (!s->sweep_active)
+    return false;
+
+  // Enough circles closed, so no slice is left measured only by the push out from rest
+  if (s->sweep_rotations < AXES_SWEEP_MIN_ROTATIONS)
+    return false;
+
+  // How far the range reaches from rest on each side, +X, +Y, -X, -Y
+  int side[4] = {
+    (int)s->max_x - s->sweep_rest_x,
+    (int)s->max_y - s->sweep_rest_y,
+    (int)s->sweep_rest_x - s->min_x,
+    (int)s->sweep_rest_y - s->min_y,
+  };
+
+  // Every sector has to be covered, judged against the range as it stands now
+  for (int i = 0; i < AXES_SWEEP_SECTORS; i++) {
+    int reach = s->sweep_reach[i];
+
+    // Each sector leans on the side it is nearest, two sectors either side of each cardinal
+    int nearest = ((i + 2) / 4) & 3;
+
+    // Covered once its best reading is past the noise floor and at least half way out on that side
+    if (reach < s->min_reach || reach * 2 < side[nearest])
+      return false;
+
+    // And once the direction was sampled enough to trust that the best reading found the rim
+    if (s->sweep_samples[i] < AXES_SWEEP_MIN_SAMPLES)
+      return false;
+  }
+
+  return true;
+}
+
+int axes_stick_calibration_session_end(const struct axes_stick_calibration_session *s, struct axes_stick_calibration *c)
+{
+  // Rest and both orientation poses are needed before there is anything to resolve
+  if (s->rest_count == 0 || !s->up_seen || !s->right_seen)
+    return -AXES_ERR_INCOMPLETE;
+
+  // Rest is the average of every centered reading
+  int rest_x = session_rest_average(s->rest_sum_x, s->rest_count);
+  int rest_y = session_rest_average(s->rest_sum_y, s->rest_count);
+
+  // Derive only uses the shorter side of each axis, so too little travel on any side would leave that axis dead
+  int reach = s->min_reach;
+  if (rest_x - (int)s->min_x < reach || (int)s->max_x - rest_x < reach)
+    return -AXES_ERR_INVALID;
+  if (rest_y - (int)s->min_y < reach || (int)s->max_y - rest_y < reach)
+    return -AXES_ERR_INVALID;
+
+  // Up and right have to have actually left rest, or the orientation would be read from noise
+  if (stick_session_deflection(s, s->up_x, s->up_y) < reach ||
+      stick_session_deflection(s, s->right_x, s->right_y) < reach)
+    return -AXES_ERR_INVALID;
+
+  // Hand over rest and the range the poses and sweep reached
+  c->rest_x = (uint16_t)rest_x;
+  c->rest_y = (uint16_t)rest_y;
+  c->min_x  = s->min_x;
+  c->min_y  = s->min_y;
+  c->max_x  = s->max_x;
+  c->max_y  = s->max_y;
+
+  // Orientation comes from where up and right landed relative to rest
+  axes_stick_calibration_orient(c, s->up_x, s->up_y, s->right_x, s->right_y);
+
+  return 0;
 }
 
 // Little endian byte order, chosen so a blob moves between targets unchanged
