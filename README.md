@@ -126,15 +126,10 @@ Pickaxes provides helpers for filling in calibration structs by running a calibr
 struct axes_stick_calibration_session session;
 axes_stick_calibration_session_begin(&session, ADC_MAX);
 
-// Capture the centered pose while the user holds the stick still
-while (holding(AXES_STICK_POSE_CENTERED))
-  axes_stick_calibration_session_capture(&session, AXES_STICK_POSE_CENTERED, adc_read(PIN_SX), adc_read(PIN_SY));
-
-// Then up and right, which the orientation is worked out from
-while (holding(AXES_STICK_POSE_UP))
-  axes_stick_calibration_session_capture(&session, AXES_STICK_POSE_UP, adc_read(PIN_SX), adc_read(PIN_SY));
-while (holding(AXES_STICK_POSE_RIGHT))
-  axes_stick_calibration_session_capture(&session, AXES_STICK_POSE_RIGHT, adc_read(PIN_SX), adc_read(PIN_SY));
+// Capture each pose while the user holds the stick there, as often as you like
+axes_stick_calibration_session_capture(&session, AXES_STICK_POSE_CENTERED, adc_read(PIN_SX), adc_read(PIN_SY));
+axes_stick_calibration_session_capture(&session, AXES_STICK_POSE_UP, adc_read(PIN_SX), adc_read(PIN_SY));
+axes_stick_calibration_session_capture(&session, AXES_STICK_POSE_RIGHT, adc_read(PIN_SX), adc_read(PIN_SY));
 
 // Sweep the stick around its rim until every direction has been reached
 axes_stick_calibration_session_sweep_begin(&session);
@@ -148,7 +143,7 @@ axes_stick_calibration_session_end(&session, &calibration);
 
 Capture the centered/resting pose first, since every other reading is judged by its distance from rest. After that poses can arrive in any order and as often as you like.
 
-The sweep captures the range of travel, and reports complete once the stick has been all the way round at least twice, reaching close to the full range in every direction.
+The sweep captures the range of travel, and reports complete once the stick has been all the way round at least three times, reaching close to the full range in every direction.
 
 Trigger sessions work the same way with the poses in `enum axes_trigger_pose`, and have no sweep.
 
