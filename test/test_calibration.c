@@ -222,6 +222,13 @@ static void sweep_square(struct axes_stick_calibration_session *s, int lo, int h
     axes_stick_calibration_session_sweep_sample(s, (uint16_t)lo, (uint16_t)i);
 }
 
+// Rotate the rim `count` times over
+static void sweep_rotations(struct axes_stick_calibration_session *s, int lo, int hi, int step, int count)
+{
+  for (int i = 0; i < count; i++)
+    sweep_square(s, lo, hi, step);
+}
+
 static void stick_up_and_right_at_rest_fail(void)
 {
   // A sweep gives a good range, but up and right captured with the stick sitting
@@ -258,11 +265,11 @@ static void sweep_square_perimeter_completes_and_sets_extents(void)
   TEST_ASSERT_EQUAL_INT(0, axes_stick_calibration_session_sweep_begin(&s));
   TEST_ASSERT_FALSE(axes_stick_calibration_session_sweep_complete(&s));
 
-  // One rotation is not enough on its own, since the circle has to be closed twice
-  sweep_square(&s, 100, 4000, 50);
+  // One short of the minimum is not enough, since the circle has to be closed
+  sweep_rotations(&s, 100, 4000, 50, AXES_SWEEP_MIN_ROTATIONS - 1);
   TEST_ASSERT_FALSE(axes_stick_calibration_session_sweep_complete(&s));
 
-  // A second rotation covers every direction
+  // The last rotation covers every direction
   sweep_square(&s, 100, 4000, 50);
   TEST_ASSERT_TRUE(axes_stick_calibration_session_sweep_complete(&s));
 
@@ -303,8 +310,7 @@ static void sweep_small_rim_then_one_push_does_not_complete(void)
   axes_stick_calibration_session_capture(&s, AXES_STICK_POSE_CENTERED, 2048, 2048);
   axes_stick_calibration_session_sweep_begin(&s);
 
-  sweep_square(&s, 1848, 2248, 8);
-  sweep_square(&s, 1848, 2248, 8);
+  sweep_rotations(&s, 1848, 2248, 8, AXES_SWEEP_MIN_ROTATIONS);
   TEST_ASSERT_TRUE(axes_stick_calibration_session_sweep_complete(&s));
 
   axes_stick_calibration_session_sweep_sample(&s, 4000, 2048);
@@ -344,8 +350,8 @@ static void sweep_wander_at_rest_does_not_count_as_rotations(void)
     axes_stick_calibration_session_sweep_sample(&s, (uint16_t)(2048 + (i * 7) % 81 - 40),
                                                 (uint16_t)(2048 + (i * 29) % 81 - 40));
 
-  // One real rotation on top of all that is still only one rotation
-  sweep_square(&s, 100, 4000, 20);
+  // Real rotations on top of all that still have to be counted from scratch
+  sweep_rotations(&s, 100, 4000, 20, AXES_SWEEP_MIN_ROTATIONS - 1);
   TEST_ASSERT_FALSE(axes_stick_calibration_session_sweep_complete(&s));
 
   sweep_square(&s, 100, 4000, 20);
@@ -360,16 +366,15 @@ static void sweep_begin_starts_coverage_over(void)
   axes_stick_calibration_session_begin(&s, 4095);
   axes_stick_calibration_session_capture(&s, AXES_STICK_POSE_CENTERED, 2048, 2048);
   axes_stick_calibration_session_sweep_begin(&s);
-  sweep_square(&s, 100, 4000, 20);
-  sweep_square(&s, 100, 4000, 20);
+  sweep_rotations(&s, 100, 4000, 20, AXES_SWEEP_MIN_ROTATIONS);
   TEST_ASSERT_TRUE(axes_stick_calibration_session_sweep_complete(&s));
 
   TEST_ASSERT_EQUAL_INT(0, axes_stick_calibration_session_sweep_begin(&s));
   TEST_ASSERT_FALSE(axes_stick_calibration_session_sweep_complete(&s));
 
-  // The range survived, so one rotation is enough to satisfy coverage again,
-  // but two are still needed to close the circle twice
-  sweep_square(&s, 100, 4000, 20);
+  // The range survived, so coverage is satisfied again straight away, but the
+  // rotations have to be closed from scratch
+  sweep_rotations(&s, 100, 4000, 20, AXES_SWEEP_MIN_ROTATIONS - 1);
   TEST_ASSERT_FALSE(axes_stick_calibration_session_sweep_complete(&s));
   sweep_square(&s, 100, 4000, 20);
   TEST_ASSERT_TRUE(axes_stick_calibration_session_sweep_complete(&s));
@@ -395,7 +400,7 @@ static void sweep_needs_the_circle_closed(void)
   for (int i = 0; i <= 100; i++)
     axes_stick_calibration_session_sweep_sample(&s, (uint16_t)(2048 + 19 * i), (uint16_t)2048);
 
-  sweep_square(&s, 100, 4000, 20);
+  sweep_rotations(&s, 100, 4000, 20, AXES_SWEEP_MIN_ROTATIONS - 1);
   TEST_ASSERT_FALSE(axes_stick_calibration_session_sweep_complete(&s));
 
   sweep_square(&s, 100, 4000, 20);

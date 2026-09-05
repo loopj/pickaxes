@@ -161,12 +161,10 @@ enum axes_gate_mode {
 /**
  * Complete rotations a sweep needs before it reports complete.
  *
- * Pushing the stick out from rest banks readings in whichever direction the
- * user started in, so a single rotation can finish a sector short of closing
- * the circle, leaving that slice measured only by the push out. Asking for a
- * second rotation closes it.
+ * One is not enough, since the readings taken while the stick is pushed out
+ * from rest can leave the direction it started in measured only by that push.
  */
-#define AXES_SWEEP_MIN_ROTATIONS 2
+#define AXES_SWEEP_MIN_ROTATIONS 3
 
 /**
  * Named trigger positions, for prompting through a calibration routine.
