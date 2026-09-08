@@ -159,13 +159,13 @@ static inline int stick_deadzone_axis(const struct axes_stick_transform *t, int 
   if (deflection <= t->inner)
     return 0;
 
-  if (t->deadzone_mode == AXES_DEADZONE_MODE_SCALED) {
-    // Rescale the usable travel onto full scale, clamped per axis
-    int32_t scaled = ((int32_t)(deflection - t->inner) * t->usable_scale) >> AXES_SCALE_SHIFT;
-    deflection     = scaled > AXES_FULL_SCALE ? AXES_FULL_SCALE : (int)scaled;
-  } else if (deflection >= t->snap_full) {
-    // Position-true, but the outer band still snaps to full deflection
+  // A snapping outer band reads fully deflected, otherwise the travel the scale
+  // covers is stretched onto full scale, clamped per axis
+  if (deflection >= t->snap_full) {
     deflection = AXES_FULL_SCALE;
+  } else {
+    int32_t scaled = ((int32_t)(deflection - t->scale_zero) * t->usable_scale) >> AXES_SCALE_SHIFT;
+    deflection     = scaled > AXES_FULL_SCALE ? AXES_FULL_SCALE : (int)scaled;
   }
 
   return value < 0 ? -deflection : deflection;
@@ -186,7 +186,11 @@ void axes_trigger_derive(struct axes_trigger_transform *t, const struct axes_tri
   if (!s)
     s = &defaults;
 
-  bool scaled = s->deadzone_mode == AXES_DEADZONE_MODE_SCALED;
+  // A scaled inner zone reads zero at its edge rather than jumping
+  bool scaled_inner = s->deadzone_mode_inner == AXES_DEADZONE_MODE_SCALE;
+
+  // A scaled outer zone folds into the scale rather than snapping at its edge
+  bool scaled_outer = s->deadzone_mode_outer == AXES_DEADZONE_MODE_SCALE;
 
   // Travel of the axis, in raw ADC units
   int span = c->pressed - c->rest;
@@ -213,11 +217,14 @@ void axes_trigger_derive(struct axes_trigger_transform *t, const struct axes_tri
   t->axis.clamp_lo = (uint16_t)(inverted ? pressed : released);
   t->axis.clamp_hi = (uint16_t)(inverted ? released : pressed);
 
-  // Scaled reads zero at the zone edge, unscaled keeps rest so mid-travel stays position true
-  int zero = scaled ? released : c->rest;
+  // A scaled inner zone reads zero at its edge, a snapped one keeps rest so mid-travel matches position
+  int zero = scaled_inner ? released : c->rest;
 
-  // Scaled stretches the usable travel, unscaled keeps the whole calibrated span
-  int travel = axes_iabs(scaled ? pressed - released : span);
+  // The end the scale spans, which a folded-in outer zone pulls inward
+  int scale_end = scaled_outer ? pressed : c->pressed;
+
+  // The scale runs between whichever ends the two settings chose
+  int travel = axes_iabs(scale_end - zero);
 
   // Round up, and let a zero-travel calibration read zero everywhere rather than divide
   int32_t scale = travel ? (((int32_t)AXES_FULL_SCALE << AXES_SCALE_SHIFT) + travel - 1) / travel : 0;
@@ -225,15 +232,10 @@ void axes_trigger_derive(struct axes_trigger_transform *t, const struct axes_tri
   t->axis.zero  = (uint16_t)zero;
   t->axis.scale = inverted ? -scale : scale;
 
-  if (scaled) {
-    // Scaled already spans the whole output range, so the ends are the bounds
-    t->snap_zero = 0;
-    t->snap_full = AXES_FULL_SCALE;
-  } else {
-    // Unscaled snaps at the zone edges, rounded exactly as apply will round them
-    t->snap_zero = (int16_t)(((int32_t)(released - zero) * t->axis.scale) >> AXES_SCALE_SHIFT);
-    t->snap_full = (int16_t)(((int32_t)(pressed - zero) * t->axis.scale) >> AXES_SCALE_SHIFT);
-  }
+  // Each zone edge snaps, rounded exactly as apply will round it. A zone folded into
+  // the scale lands on zero or full scale here anyway, so it needs no special case
+  t->snap_zero = (int16_t)(((int32_t)(released - zero) * t->axis.scale) >> AXES_SCALE_SHIFT);
+  t->snap_full = (int16_t)(((int32_t)(pressed - zero) * t->axis.scale) >> AXES_SCALE_SHIFT);
 
   // Bake the response curve, skipped entirely when linear
   t->curve_linear = s->response_gamma == 0 || s->response_gamma == AXES_GAMMA_LINEAR;
@@ -384,9 +386,9 @@ void axes_stick_derive(struct axes_stick_transform *t, const struct axes_stick_c
     stick_derive_axis(&t->axis[1], c->rest_y, c->min_y, c->max_y, c->invert_y);
   }
 
-  // Shapes and modes carry through unchanged, since apply branches on them directly
+  // Shapes carry through unchanged, since apply branches on them directly. The modes
+  // do not, since the scale's zero point and snap_full already carry what they decide
   t->deadzone_shape = s->deadzone_shape;
-  t->deadzone_mode  = s->deadzone_mode;
   t->gate_shape     = s->gate_shape;
   t->gate_mode      = s->gate_mode;
 
@@ -394,8 +396,13 @@ void axes_stick_derive(struct axes_stick_transform *t, const struct axes_stick_c
   int inner = axes_iclamp(s->deadzone_inner, 0, AXES_FULL_SCALE);
   int outer = axes_iclamp(s->deadzone_outer, 0, AXES_FULL_SCALE);
 
-  // The usable travel is whatever the two deadzones leave behind
-  int usable = AXES_FULL_SCALE - inner - outer;
+  // Each setting decides only whether its own zone folds into the scale
+  bool scaled_inner = s->deadzone_mode_inner == AXES_DEADZONE_MODE_SCALE;
+  bool scaled_outer = s->deadzone_mode_outer == AXES_DEADZONE_MODE_SCALE;
+
+  // The scale runs from the deflection it reads as zero out to the one it reads as full
+  t->scale_zero = scaled_inner ? inner : 0;
+  int usable    = (scaled_outer ? AXES_FULL_SCALE - outer : AXES_FULL_SCALE) - t->scale_zero;
 
   // Floor it, so the rescale slope stays bounded and we never divide by zero
   if (usable < AXES_FULL_SCALE / 8)
@@ -405,8 +412,9 @@ void axes_stick_derive(struct axes_stick_transform *t, const struct axes_stick_c
   t->inner    = inner;
   t->inner_sq = inner * inner;
 
-  // INT32_MAX when there is no outer deadzone, so nothing ever snaps
-  t->snap_full = outer ? AXES_FULL_SCALE - outer : INT32_MAX;
+  // INT32_MAX when nothing snaps, either because the scale already covers the
+  // outer zone or because there is no outer zone at all
+  t->snap_full = !scaled_outer && outer ? AXES_FULL_SCALE - outer : INT32_MAX;
 
   // Round up, so full deflection always reaches full scale
   t->usable_scale = (((int32_t)AXES_FULL_SCALE << AXES_SCALE_SHIFT) + usable - 1) / usable;
@@ -444,8 +452,7 @@ void axes_stick_derive(struct axes_stick_transform *t, const struct axes_stick_c
 void axes_stick_apply(const struct axes_stick_transform *t, uint16_t raw_x, uint16_t raw_y, int16_t *out_x,
                       int16_t *out_y)
 {
-  bool axial  = t->deadzone_shape == AXES_DEADZONE_SHAPE_AXIAL;
-  bool scaled = t->deadzone_mode == AXES_DEADZONE_MODE_SCALED;
+  bool axial = t->deadzone_shape == AXES_DEADZONE_SHAPE_AXIAL;
 
   // Normalized logical vector, full scale per axis, swapping the raw readings for a 90-degree mount
   int vx = axes_axis_map(&t->axis[0], t->swap_xy ? raw_y : raw_x);
@@ -476,18 +483,15 @@ void axes_stick_apply(const struct axes_stick_transform *t, uint16_t raw_x, uint
 
   // Target radius for this direction, kept in fixed point so the divide below keeps its fractional bits
   int32_t radius;
-  if (axial || !scaled) {
-    // Position-true, or already banded per axis, so the magnitude stands
-    int shaped = magnitude;
-
-    // A radial outer zone still snaps to full deflection
-    if (!axial && magnitude >= t->snap_full)
-      shaped = AXES_FULL_SCALE;
-
-    radius = (int32_t)shaped << AXES_SCALE_SHIFT;
+  if (axial) {
+    // The per-axis bands already shaped each component, so the magnitude stands
+    radius = (int32_t)magnitude << AXES_SCALE_SHIFT;
   } else {
-    // Rescale the usable travel between the radial deadzones onto full scale
-    radius = (magnitude - t->inner) * t->usable_scale;
+    // Stretch the travel the scale covers onto full scale, reading fully deflected
+    // inside a snapping outer zone. Computed unconditionally so this stays a select
+    // rather than a branch the outer zone would make unpredictable
+    int32_t stretched = (magnitude - t->scale_zero) * t->usable_scale;
+    radius            = magnitude >= t->snap_full ? max_radius : stretched;
   }
 
   // Every gate but NONE holds the radius at full scale
@@ -885,10 +889,10 @@ int axes_trigger_shaping_pack(uint8_t *dest, size_t size, const struct axes_trig
     return -AXES_ERR_SIZE;
 
   // Reject out of range settings
-  if (src->deadzone_mode >= AXES_DEADZONE_MODE_COUNT)
+  if (src->deadzone_mode_inner >= AXES_DEADZONE_MODE_COUNT || src->deadzone_mode_outer >= AXES_DEADZONE_MODE_COUNT)
     return -AXES_ERR_INVALID;
 
-  uint8_t deadzone_flags = (uint8_t)(src->deadzone_mode << 2);
+  uint8_t deadzone_flags = (uint8_t)((src->deadzone_mode_inner << 2) | (src->deadzone_mode_outer << 3));
 
   axes_put_u16(&dest[0], src->deadzone_inner);
   axes_put_u16(&dest[2], src->deadzone_outer);
@@ -903,10 +907,11 @@ int axes_trigger_shaping_unpack(struct axes_trigger_shaping *dest, const uint8_t
   if (size < AXES_PACKED_TRIGGER_SHAPING_SIZE)
     return -AXES_ERR_SIZE;
 
-  dest->deadzone_inner = axes_get_u16(&src[0]);
-  dest->deadzone_outer = axes_get_u16(&src[2]);
-  dest->deadzone_mode  = (enum axes_deadzone_mode)((src[4] >> 2) & 1u);
-  dest->response_gamma = axes_get_u16(&src[5]);
+  dest->deadzone_inner      = axes_get_u16(&src[0]);
+  dest->deadzone_outer      = axes_get_u16(&src[2]);
+  dest->deadzone_mode_inner = (enum axes_deadzone_mode)((src[4] >> 2) & 1u);
+  dest->deadzone_mode_outer = (enum axes_deadzone_mode)((src[4] >> 3) & 1u);
+  dest->response_gamma      = axes_get_u16(&src[5]);
 
   return 0;
 }
@@ -917,13 +922,16 @@ int axes_stick_shaping_pack(uint8_t *dest, size_t size, const struct axes_stick_
     return -AXES_ERR_SIZE;
 
   // Reject out of range settings
-  if (src->deadzone_shape >= AXES_DEADZONE_SHAPE_COUNT || src->deadzone_mode >= AXES_DEADZONE_MODE_COUNT)
+  if (src->deadzone_shape >= AXES_DEADZONE_SHAPE_COUNT)
+    return -AXES_ERR_INVALID;
+  if (src->deadzone_mode_inner >= AXES_DEADZONE_MODE_COUNT || src->deadzone_mode_outer >= AXES_DEADZONE_MODE_COUNT)
     return -AXES_ERR_INVALID;
   if (src->gate_shape >= AXES_GATE_SHAPE_COUNT || src->gate_mode >= AXES_GATE_MODE_COUNT)
     return -AXES_ERR_INVALID;
 
-  uint8_t deadzone_flags = (uint8_t)(src->deadzone_shape | (src->deadzone_mode << 2));
-  uint8_t gate_flags     = (uint8_t)(src->gate_shape | (src->gate_mode << 2));
+  uint8_t deadzone_flags =
+    (uint8_t)(src->deadzone_shape | (src->deadzone_mode_inner << 2) | (src->deadzone_mode_outer << 3));
+  uint8_t gate_flags = (uint8_t)(src->gate_shape | (src->gate_mode << 2));
 
   axes_put_u16(&dest[0], src->deadzone_inner);
   axes_put_u16(&dest[2], src->deadzone_outer);
@@ -947,14 +955,15 @@ int axes_stick_shaping_unpack(struct axes_stick_shaping *dest, const uint8_t *sr
   if (deadzone_shape >= AXES_DEADZONE_SHAPE_COUNT || gate_shape >= AXES_GATE_SHAPE_COUNT)
     return -AXES_ERR_INVALID;
 
-  dest->deadzone_inner = axes_get_u16(&src[0]);
-  dest->deadzone_outer = axes_get_u16(&src[2]);
-  dest->deadzone_shape = (enum axes_deadzone_shape)deadzone_shape;
-  dest->deadzone_mode  = (enum axes_deadzone_mode)((src[4] >> 2) & 1u);
-  dest->response_gamma = axes_get_u16(&src[5]);
-  dest->gate_shape     = (enum axes_gate_shape)gate_shape;
-  dest->gate_mode      = (enum axes_gate_mode)((src[7] >> 2) & 1u);
-  dest->gate_corner    = axes_get_u16(&src[8]);
+  dest->deadzone_inner      = axes_get_u16(&src[0]);
+  dest->deadzone_outer      = axes_get_u16(&src[2]);
+  dest->deadzone_shape      = (enum axes_deadzone_shape)deadzone_shape;
+  dest->deadzone_mode_inner = (enum axes_deadzone_mode)((src[4] >> 2) & 1u);
+  dest->deadzone_mode_outer = (enum axes_deadzone_mode)((src[4] >> 3) & 1u);
+  dest->response_gamma      = axes_get_u16(&src[5]);
+  dest->gate_shape          = (enum axes_gate_shape)gate_shape;
+  dest->gate_mode           = (enum axes_gate_mode)((src[7] >> 2) & 1u);
+  dest->gate_corner         = axes_get_u16(&src[8]);
 
   return 0;
 }

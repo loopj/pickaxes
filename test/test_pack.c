@@ -28,14 +28,15 @@ static const struct axes_stick_calibration stick_cal = {
 };
 
 static const struct axes_stick_shaping stick_shape = {
-  .deadzone_inner = 512,
-  .deadzone_outer = 256,
-  .deadzone_shape = AXES_DEADZONE_SHAPE_AXIAL,
-  .deadzone_mode  = AXES_DEADZONE_MODE_UNSCALED,
-  .response_gamma = 384,
-  .gate_shape     = AXES_GATE_SHAPE_OCTAGON,
-  .gate_mode      = AXES_GATE_MODE_SCALE,
-  .gate_corner    = AXES_OCTAGON_REGULAR,
+  .deadzone_inner      = 512,
+  .deadzone_outer      = 256,
+  .deadzone_shape      = AXES_DEADZONE_SHAPE_AXIAL,
+  .deadzone_mode_inner = AXES_DEADZONE_MODE_SNAP,
+  .deadzone_mode_outer = AXES_DEADZONE_MODE_SNAP,
+  .response_gamma      = 384,
+  .gate_shape          = AXES_GATE_SHAPE_OCTAGON,
+  .gate_mode           = AXES_GATE_MODE_SCALE,
+  .gate_corner         = AXES_OCTAGON_REGULAR,
 };
 
 static const struct axes_trigger_calibration trigger_cal = {
@@ -44,10 +45,11 @@ static const struct axes_trigger_calibration trigger_cal = {
 };
 
 static const struct axes_trigger_shaping trigger_shape = {
-  .deadzone_inner = 128,
-  .deadzone_outer = 64,
-  .deadzone_mode  = AXES_DEADZONE_MODE_UNSCALED,
-  .response_gamma = AXES_GAMMA_LINEAR,
+  .deadzone_inner      = 128,
+  .deadzone_outer      = 64,
+  .deadzone_mode_inner = AXES_DEADZONE_MODE_SCALE,
+  .deadzone_mode_outer = AXES_DEADZONE_MODE_SNAP,
+  .response_gamma      = AXES_GAMMA_LINEAR,
 };
 
 static void stick_calibration_round_trips(void)
@@ -80,7 +82,8 @@ static void stick_shaping_round_trips(void)
   TEST_ASSERT_EQUAL_UINT16(stick_shape.deadzone_inner, out.deadzone_inner);
   TEST_ASSERT_EQUAL_UINT16(stick_shape.deadzone_outer, out.deadzone_outer);
   TEST_ASSERT_EQUAL_INT(stick_shape.deadzone_shape, out.deadzone_shape);
-  TEST_ASSERT_EQUAL_INT(stick_shape.deadzone_mode, out.deadzone_mode);
+  TEST_ASSERT_EQUAL_INT(stick_shape.deadzone_mode_inner, out.deadzone_mode_inner);
+  TEST_ASSERT_EQUAL_INT(stick_shape.deadzone_mode_outer, out.deadzone_mode_outer);
   TEST_ASSERT_EQUAL_UINT16(stick_shape.response_gamma, out.response_gamma);
   TEST_ASSERT_EQUAL_INT(stick_shape.gate_shape, out.gate_shape);
   TEST_ASSERT_EQUAL_INT(stick_shape.gate_mode, out.gate_mode);
@@ -109,7 +112,8 @@ static void trigger_shaping_round_trips(void)
 
   TEST_ASSERT_EQUAL_UINT16(trigger_shape.deadzone_inner, out.deadzone_inner);
   TEST_ASSERT_EQUAL_UINT16(trigger_shape.deadzone_outer, out.deadzone_outer);
-  TEST_ASSERT_EQUAL_INT(trigger_shape.deadzone_mode, out.deadzone_mode);
+  TEST_ASSERT_EQUAL_INT(trigger_shape.deadzone_mode_inner, out.deadzone_mode_inner);
+  TEST_ASSERT_EQUAL_INT(trigger_shape.deadzone_mode_outer, out.deadzone_mode_outer);
   TEST_ASSERT_EQUAL_UINT16(trigger_shape.response_gamma, out.response_gamma);
 }
 

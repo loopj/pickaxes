@@ -1,9 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="680" height="368" viewBox="0 0 680 368" role="img" aria-label="Unscaled and scaled deadzone response curves">
-<title>Unscaled and scaled deadzone response</title>
-<desc>Two plots of output against raw deflection. The unscaled curve jumps at the inner threshold and again at the outer threshold. The scaled curve ramps continuously from the inner threshold to the outer one.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="276" viewBox="0 0 680 276" role="img" aria-label="Deadzone response curves for every pairing of inner and outer mode">
+<title>Deadzone response for every pairing of inner and outer mode</title>
+<desc>Four plots of output against raw deflection, one per pairing of inner and outer deadzone mode. A scaled zone is crossed without a jump, a snapping zone is crossed with one, and each setting affects only its own end of the travel. The two mixed pairings are mirror images, one rising from zero and jumping at the top, the other jumping at the bottom and arriving smoothly at the top.</desc>
 <style>
   text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
   .title { font-size: 14px; font-weight: 500; fill: #F1EFE8; }
+  .caption { font-size: 12px; font-weight: 500; fill: #F1EFE8; }
   .label { font-size: 12px; font-weight: 400; fill: #C2C0B6; }
   .panel { fill: none; stroke: #6B6A65; stroke-width: 0.5; }
   .inner { fill: #F5C4B3; opacity: 0.58; }
@@ -12,31 +13,62 @@
   .key-o { fill: #9FE1CB; opacity: 0.85; }
   .curve { fill: none; stroke: #F1EFE8; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .riser { fill: none; stroke: #F1EFE8; stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.6; }
+  .tick  { font-size: 10px; font-weight: 400; fill: #B4B2A9; }
 </style>
 
-<text class="title" x="190" y="34" text-anchor="middle">Unscaled</text>
-<text class="title" x="490" y="34" text-anchor="middle">Scaled</text>
+<text class="title" x="340" y="26" text-anchor="middle">Deadzone Mode</text>
+<rect class="panel" x="34" y="54" width="132" height="132" rx="4"/>
+<rect class="inner" x="34" y="54" width="15" height="132"/>
+<rect class="outer" x="151" y="54" width="15" height="132"/>
+<path class="curve" d="M37 183 H49 L151 57 H163"/>
+<text class="tick" x="29" y="58" text-anchor="end">1</text>
+<text class="tick" x="34" y="198" text-anchor="middle">0</text>
+<text class="tick" x="166" y="198" text-anchor="middle">1</text>
+<text class="caption" x="100" y="214" text-anchor="middle">inner = scale</text>
+<text class="caption" x="100" y="230" text-anchor="middle">outer = scale</text>
 
-<rect class="panel" x="70" y="54" width="240" height="240" rx="4"/>
-<rect class="inner" x="70" y="54" width="27" height="240"/>
-<rect class="outer" x="283" y="54" width="27" height="240"/>
-<path class="curve" d="M74 290 H97"/>
-<path class="riser" d="M97 290 V267"/>
-<path class="curve" d="M97 267 L283 81"/>
-<path class="riser" d="M283 81 V58"/>
-<path class="curve" d="M283 58 H306"/>
+<rect class="panel" x="194" y="54" width="132" height="132" rx="4"/>
+<rect class="inner" x="194" y="54" width="15" height="132"/>
+<rect class="outer" x="311" y="54" width="15" height="132"/>
+<path class="curve" d="M197 183 H209 L311 73"/>
+<path class="riser" d="M311 73 V57"/>
+<path class="curve" d="M311 57 H323"/>
+<text class="tick" x="189" y="58" text-anchor="end">1</text>
+<text class="tick" x="194" y="198" text-anchor="middle">0</text>
+<text class="tick" x="326" y="198" text-anchor="middle">1</text>
+<text class="caption" x="260" y="214" text-anchor="middle">inner = scale</text>
+<text class="caption" x="260" y="230" text-anchor="middle">outer = snap</text>
 
-<rect class="panel" x="370" y="54" width="240" height="240" rx="4"/>
-<rect class="inner" x="370" y="54" width="27" height="240"/>
-<rect class="outer" x="583" y="54" width="27" height="240"/>
-<path class="curve" d="M374 290 H397 L583 58 H606"/>
+<rect class="panel" x="354" y="54" width="132" height="132" rx="4"/>
+<rect class="inner" x="354" y="54" width="15" height="132"/>
+<rect class="outer" x="471" y="54" width="15" height="132"/>
+<path class="curve" d="M357 183 H369"/>
+<path class="riser" d="M369 183 V167"/>
+<path class="curve" d="M369 167 L471 57 H483"/>
+<text class="tick" x="349" y="58" text-anchor="end">1</text>
+<text class="tick" x="354" y="198" text-anchor="middle">0</text>
+<text class="tick" x="486" y="198" text-anchor="middle">1</text>
+<text class="caption" x="420" y="214" text-anchor="middle">inner = snap</text>
+<text class="caption" x="420" y="230" text-anchor="middle">outer = scale</text>
 
-<rect class="key-i" x="166" y="317" width="11" height="11"/>
-<text class="label" x="183" y="326">Inner deadzone</text>
-<rect class="key-o" x="309" y="317" width="11" height="11"/>
-<text class="label" x="326" y="326">Outer deadzone</text>
-<line x1="452" y1="322" x2="466" y2="322" stroke="#F1EFE8" stroke-width="2" stroke-linecap="round"/>
-<text class="label" x="472" y="326">Output</text>
+<rect class="panel" x="514" y="54" width="132" height="132" rx="4"/>
+<rect class="inner" x="514" y="54" width="15" height="132"/>
+<rect class="outer" x="631" y="54" width="15" height="132"/>
+<path class="curve" d="M517 183 H529"/>
+<path class="riser" d="M529 183 V169"/>
+<path class="curve" d="M529 169 L631 71"/>
+<path class="riser" d="M631 71 V57"/>
+<path class="curve" d="M631 57 H643"/>
+<text class="tick" x="509" y="58" text-anchor="end">1</text>
+<text class="tick" x="514" y="198" text-anchor="middle">0</text>
+<text class="tick" x="646" y="198" text-anchor="middle">1</text>
+<text class="caption" x="580" y="214" text-anchor="middle">inner = snap</text>
+<text class="caption" x="580" y="230" text-anchor="middle">outer = snap</text>
 
-<text class="label" x="340" y="344" text-anchor="middle">Horizontal axis: raw deflection. Vertical axis: output.</text>
+<rect class="key-i" x="166" y="251" width="11" height="11"/>
+<text class="label" x="183" y="260">Inner deadzone</text>
+<rect class="key-o" x="309" y="251" width="11" height="11"/>
+<text class="label" x="326" y="260">Outer deadzone</text>
+<line x1="452" y1="256" x2="466" y2="256" stroke="#F1EFE8" stroke-width="2" stroke-linecap="round"/>
+<text class="label" x="472" y="260">Output</text>
 </svg>

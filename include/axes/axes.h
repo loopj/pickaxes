@@ -36,7 +36,7 @@ enum axes_error {
 #define AXES_FULL_SCALE      (1 << AXES_FULL_SCALE_BITS)
 
 /** Layout version of the packed records, bumped when any layout changes */
-#define AXES_PACKED_VERSION 1
+#define AXES_PACKED_VERSION 2
 
 /** Packed record sizes, for sizing buffers and flash slots at compile time */
 #define AXES_PACKED_TRIGGER_CALIBRATION_SIZE 4
@@ -45,14 +45,24 @@ enum axes_error {
 #define AXES_PACKED_STICK_SHAPING_SIZE       10
 
 /**
- * What happens to input outside the deadzone.
+ * What happens to input outside a deadzone.
+ *
+ * Set separately for the inner and outer zones, so each end of the travel is
+ * independent of the other.
  */
 enum axes_deadzone_mode {
-  /** Stretches the remaining travel to cover the full range, so output rises from zero */
-  AXES_DEADZONE_MODE_SCALED,
+  /**
+   * Folds the zone into the scale, stretching the travel it leaves behind to
+   * cover the full range, so output crosses the zone's edge without a jump
+   */
+  AXES_DEADZONE_MODE_SCALE,
 
-  /** Passes input through unchanged (position-true), so output jumps as the input leaves the zone */
-  AXES_DEADZONE_MODE_UNSCALED,
+  /**
+   * Keeps the zone out of the scale, so input inside it reads the end it sits
+   * against and output jumps as it crosses the edge. Setting both zones to SNAP
+   * makes output match the physical position between them
+   */
+  AXES_DEADZONE_MODE_SNAP,
 
   /** Number of deadzone modes, not a mode itself */
   AXES_DEADZONE_MODE_COUNT,
@@ -65,7 +75,14 @@ enum axes_deadzone_shape {
   /** A circle applied to the stick's distance from center */
   AXES_DEADZONE_SHAPE_RADIAL,
 
-  /** A separate band applied to each axis */
+  /**
+   * A separate band applied to each axis.
+   *
+   * Suits hardware that deadzoned each axis independently. On a circular travel
+   * an axial inner band costs diagonal reach, which a scaled outer zone recovers
+   * once it is at least 0.414 times the inner, and which a snapping outer zone
+   * never recovers.
+   */
   AXES_DEADZONE_SHAPE_AXIAL,
 
   /** Number of deadzone shapes, not a shape itself */
@@ -332,8 +349,11 @@ struct axes_trigger_shaping {
   /** How far in from full press the trigger reads as fully pressed, [0, AXES_FULL_SCALE) */
   uint16_t deadzone_outer;
 
-  /** What happens to input outside the zones (see @ref axes_deadzone_mode) */
-  enum axes_deadzone_mode deadzone_mode;
+  /** What happens as input leaves the inner zone (see @ref axes_deadzone_mode) */
+  enum axes_deadzone_mode deadzone_mode_inner;
+
+  /** What happens as input enters the outer zone (see @ref axes_deadzone_mode) */
+  enum axes_deadzone_mode deadzone_mode_outer;
 
   /** Response curve exponent in Q8.8, applied to the press after deadzones, zero or AXES_GAMMA_LINEAR is linear */
   uint16_t response_gamma;
@@ -349,11 +369,14 @@ struct axes_stick_shaping {
   /** How far in from full deflection input reads as fully deflected, [0, AXES_FULL_SCALE) */
   uint16_t deadzone_outer;
 
+  /** What happens as input leaves the inner zone (see @ref axes_deadzone_mode) */
+  enum axes_deadzone_mode deadzone_mode_inner;
+
+  /** What happens as input enters the outer zone (see @ref axes_deadzone_mode) */
+  enum axes_deadzone_mode deadzone_mode_outer;
+
   /** How the deadzone region is measured (see @ref axes_deadzone_shape) */
   enum axes_deadzone_shape deadzone_shape;
-
-  /** What happens to input outside the zones (see @ref axes_deadzone_mode) */
-  enum axes_deadzone_mode deadzone_mode;
 
   /** Response curve exponent in Q8.8, applied after deadzones, zero or AXES_GAMMA_LINEAR is linear */
   uint16_t response_gamma;
@@ -426,9 +449,6 @@ struct axes_stick_transform {
   // How the deadzone region is measured
   enum axes_deadzone_shape deadzone_shape;
 
-  // What happens to input outside the deadzone
-  enum axes_deadzone_mode deadzone_mode;
-
   // Inner deadzone width
   int32_t inner;
 
@@ -437,6 +457,9 @@ struct axes_stick_transform {
 
   // Output at or beyond this reads fully deflected, INT32_MAX when there is no outer deadzone
   int32_t snap_full;
+
+  // Deflection the scale reads as zero, the inner width when that zone folds in
+  int32_t scale_zero;
 
   // Stretches the usable travel onto full scale
   int32_t usable_scale;
