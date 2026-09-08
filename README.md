@@ -2,7 +2,8 @@
   <img src="images/pickaxes-2x.png" valign="middle" alt="">
   Pickaxes
 </h1>
-<p align="center"><em>Input calibration and shaping for sticks and triggers on 32-bit microcontrollers</em></p>
+
+Pickaxes is for anyone building their own controller, or adding sticks and triggers to a microcontroller project. It takes raw ADC readings from any stick or trigger and turns them into calibrated, shaped output.
 
 ## Features
 
@@ -16,7 +17,7 @@
 
 ## Overview
 
-Game controllers typically have many analog inputs, such as sticks and triggers. When building a custom controller, those inputs can come from anywhere, sometimes salvaged from other systems, and sometimes even designed from scratch. Pickaxes lets you tune the feel of each input, either for personal preference, or to match the feel of an original controller.
+The sticks and triggers in a custom controller can come from anywhere, sometimes salvaged from other systems, and sometimes designed from scratch. Pickaxes lets you tune the feel of each one, either for personal preference, or to match the feel of an original controller.
 
 Pickaxes transforms raw ADC values based on two layers of configuration, [*calibration*](#calibration) and [*shaping*](#shaping). Calibration describes the physical properties of each input, such as its orientation and range, while shaping can be tuned by the user to adjust the precise shape and feel of the output.
 
