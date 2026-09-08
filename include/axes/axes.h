@@ -96,6 +96,18 @@ enum axes_deadzone_shape {
  */
 #define AXES_GAMMA_LINEAR 256
 
+/** Gamma 0.5, output rises fast off rest and flattens toward full travel */
+#define AXES_GAMMA_VERY_EAGER   (AXES_GAMMA_LINEAR / 2)
+
+/** Gamma 0.75, a gentler version of the same */
+#define AXES_GAMMA_EAGER        (AXES_GAMMA_LINEAR * 3 / 4)
+
+/** Gamma 1.5, output rises slowly off rest for fine control, then ramps to full */
+#define AXES_GAMMA_RELAXED      (AXES_GAMMA_LINEAR * 3 / 2)
+
+/** Gamma 2.0, a stronger version of the same */
+#define AXES_GAMMA_VERY_RELAXED (AXES_GAMMA_LINEAR * 2)
+
 /**
  * Stick gate, the target shape the stick's range is mapped to.
  *
@@ -355,7 +367,7 @@ struct axes_trigger_shaping {
   /** What happens as input enters the outer zone (see @ref axes_deadzone_mode) */
   enum axes_deadzone_mode deadzone_mode_outer;
 
-  /** Response curve exponent in Q8.8, applied to the press after deadzones, zero or AXES_GAMMA_LINEAR is linear */
+  /** Response curve exponent in Q8.8, applied to the press after deadzones, zero is linear (see AXES_GAMMA_*) */
   uint16_t response_gamma;
 };
 
@@ -378,7 +390,7 @@ struct axes_stick_shaping {
   /** How the deadzone region is measured (see @ref axes_deadzone_shape) */
   enum axes_deadzone_shape deadzone_shape;
 
-  /** Response curve exponent in Q8.8, applied after deadzones, zero or AXES_GAMMA_LINEAR is linear */
+  /** Response curve exponent in Q8.8, applied after deadzones, zero is linear (see AXES_GAMMA_*) */
   uint16_t response_gamma;
 
   /** Gate shape (see @ref axes_gate_shape) */

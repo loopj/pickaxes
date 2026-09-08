@@ -208,7 +208,15 @@ A response curve is set with `response_gamma`, a single exponent applied to the 
 - `< 1.0` - eager, output rises quickly off rest, then flattens out
 - `> 1.0` - relaxed, output rises slowly off rest for fine control, then ramps to full
 
-Gamma is stored as Q8.8 fixed point, where `AXES_GAMMA_LINEAR` is exactly 1.0, so a curve of 1.5 is `1.5 * AXES_GAMMA_LINEAR`.
+Presets are provided for a useful spread of curves:
+
+- `AXES_GAMMA_VERY_EAGER` - 0.5
+- `AXES_GAMMA_EAGER` - 0.75
+- `AXES_GAMMA_LINEAR` - 1.0
+- `AXES_GAMMA_RELAXED` - 1.5
+- `AXES_GAMMA_VERY_RELAXED` - 2.0
+
+For other curves, gamma is stored as Q8.8 fixed point, where `AXES_GAMMA_LINEAR` is exactly 1.0, so a curve of 1.25 is `1.25 * AXES_GAMMA_LINEAR`.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/response-curves-dark.svg">
