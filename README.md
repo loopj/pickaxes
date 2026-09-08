@@ -114,9 +114,7 @@ struct axes_trigger_calibration {
 };
 ```
 
-A [calibration session](#calibration-sessions) captures these from the poses in `enum axes_trigger_pose`. By hand, record `rest` with the trigger released and `pressed` with it held all the way down.
-
-There is no need to specify an orientation, since it can be determined automatically from the `rest` and `pressed` readings.
+A [calibration session](#calibration-sessions) captures these from the poses in `enum axes_trigger_pose`. By hand, record `rest` with the trigger released and `pressed` with it held all the way down. There is no need to specify an orientation, since it can be determined automatically from the `rest` and `pressed` readings.
 
 A reasonable starting point before any calibration has run is `axes_trigger_calibration_default()`, which spans the ADC range you hand it, released at the bottom and fully pressed at the top.
 
@@ -203,7 +201,7 @@ Pick axial only to match an original controller that had a separate deadzone on 
 
 ### Response Curves
 
-A response curve is set with `response_gamma`, a single exponent applied to the normalized magnitude after deadzones, which for a stick is its distance from rest rather than each axis. It bends the output's ramp, trading sensitivity near rest against sensitivity at the far end of travel. This is most useful for sensors that are not linear to begin with, such as home-made Hall effect triggers, which read magnetic field strength rather than travel and so compress toward one end.
+A response curve is set with `response_gamma`, a single exponent applied to how far the input has travelled once deadzones are removed. It bends the output's ramp, trading sensitivity near rest against sensitivity at the far end of travel. This is most useful for sensors that are not linear to begin with, such as home-made Hall effect triggers, which read magnetic field strength rather than travel and so compress toward one end.
 
 - `1.0` - linear, output tracks physical travel
 - `< 1.0` - eager, output rises quickly off rest, then flattens out
