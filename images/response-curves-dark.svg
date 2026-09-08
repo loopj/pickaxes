@@ -25,7 +25,8 @@
 <text class="tick" x="132" y="154" text-anchor="middle">1</text>
 <text class="tick" x="14" y="34" text-anchor="end">1</text>
 <text class="caption" x="76" y="170" text-anchor="middle">gamma = 0.50</text>
-<text class="label" x="76" y="186" text-anchor="middle">eager</text>
+<text class="label" x="76" y="186" text-anchor="middle">very eager</text>
+<text class="label" x="208" y="186" text-anchor="middle">eager</text>
 <rect class="axis" x="152" y="30" width="112" height="112"/>
 <line class="grid" x1="208" y1="30" x2="208" y2="142"/>
 <line class="grid" x1="152" y1="86" x2="264" y2="86"/>
@@ -59,7 +60,8 @@
 <text class="tick" x="548" y="154" text-anchor="middle">0</text>
 <text class="tick" x="660" y="154" text-anchor="middle">1</text>
 <text class="caption" x="604" y="170" text-anchor="middle">gamma = 2.00</text>
-<text class="label" x="604" y="186" text-anchor="middle">relaxed</text>
+<text class="label" x="472" y="186" text-anchor="middle">relaxed</text>
+<text class="label" x="604" y="186" text-anchor="middle">very relaxed</text>
 
 <line class="hair" x1="223.5" y1="212" x2="239.5" y2="212"/>
 <text class="label" x="245.5" y="216">Linear response</text>
