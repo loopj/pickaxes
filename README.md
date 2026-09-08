@@ -7,7 +7,7 @@
 ## Features
 
 - [Calibration](#calibration) for sticks and triggers
-- Inner and outer [deadzones](#deadzones) - axial/radial, scaled/position true
+- Inner and outer [deadzones](#deadzones) - axial/radial, scale/snap
 - Gamma [response curves](#response-curves) for sensitivity tuning
 - [Virtual gates](#virtual-gates) - circular, square, octagonal
 - Plain, freestanding C99 - no libc, no dependencies
@@ -50,14 +50,15 @@ struct axes_stick_calibration calibration = {
 
 // Shaping for an OEM N64 feel, with a small deadzone
 struct axes_stick_shaping shaping = {
-  .deadzone_inner   = AXES_FULL_SCALE * 0.05,
-  .deadzone_outer   = AXES_FULL_SCALE * 0.02,
-  .deadzone_shape   = AXES_DEADZONE_SHAPE_RADIAL,
-  .deadzone_mode    = AXES_DEADZONE_MODE_SCALED,
-  .response_gamma   = AXES_GAMMA_LINEAR,
-  .gate_shape       = AXES_GATE_SHAPE_OCTAGON,
-  .gate_corner      = AXES_OCTAGON_N64,
-  .gate_mode        = AXES_GATE_MODE_SCALE,
+  .deadzone_inner      = AXES_FULL_SCALE * 0.05,
+  .deadzone_outer      = AXES_FULL_SCALE * 0.02,
+  .deadzone_mode_inner = AXES_DEADZONE_MODE_SCALE,
+  .deadzone_mode_outer = AXES_DEADZONE_MODE_SCALE,
+  .deadzone_shape      = AXES_DEADZONE_SHAPE_RADIAL,
+  .response_gamma      = AXES_GAMMA_LINEAR,
+  .gate_shape          = AXES_GATE_SHAPE_OCTAGON,
+  .gate_corner         = AXES_OCTAGON_N64,
+  .gate_mode           = AXES_GATE_MODE_SCALE,
 };
 
 // Combine calibration and shaping into a transform
@@ -161,15 +162,17 @@ Deadzone sizes are set with `deadzone_inner` and `deadzone_outer`. The inner dea
 
 #### Deadzone Mode
 
-The `deadzone_mode` decides what happens when input leaves the deadzone:
+Each zone has its own mode, set with `deadzone_mode_inner` and `deadzone_mode_outer`, so the two ends of the travel are independent:
 
-- `AXES_DEADZONE_MODE_UNSCALED` - passes input through unchanged, so output matches physical position exactly, at the cost of a jump as the input leaves the zone
-- `AXES_DEADZONE_MODE_SCALED` - stretches the remaining travel to cover the full range, so output rises from zero
+- `AXES_DEADZONE_MODE_SCALE` - stretches the remaining travel to cover the full range, so output crosses the zone's edge without a jump
+- `AXES_DEADZONE_MODE_SNAP` - leaves the travel alone, so output jumps as it crosses the edge
+
+With both zones snapped, output between them matches the physical position exactly.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/deadzone-mode-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="images/deadzone-mode-light.svg">
-  <img alt="Scaled and unscaled deadzone response" src="images/deadzone-mode-light.svg" width="680">
+  <img alt="Deadzone response for every pairing of inner and outer mode" src="images/deadzone-mode-light.svg" width="680">
 </picture>
 
 #### Deadzone Shape
@@ -184,6 +187,18 @@ For sticks, the `deadzone_shape` decides which area of the stick's travel is con
   <source media="(prefers-color-scheme: light)" srcset="images/deadzone-shape-light.svg">
   <img alt="Axial and radial deadzone regions" src="images/deadzone-shape-light.svg" width="680">
 </picture>
+
+#### Choosing a Deadzone
+
+Start with a radial shape and both zones scaled, which keeps output continuous from rest to full deflection.
+
+Size the inner zone to the noise you measure at rest and no larger, since every percent is travel you cannot use. Hall effect sensors settle at 2-5%. Worn potentiometers may need 10% or more.
+
+Do not leave the outer zone at zero. Calibration keeps the farthest reading it saw, so the extents sit at the outward edge of the noise and an ordinary full push lands just short of them. 2-5% covers that, and on a trigger it is what keeps a full press registering as one.
+
+If the outer zone has to be large, above about 10%, snap it instead. Scaling a zone that wide makes the input more sensitive everywhere, because the same output now has to fit into less travel. Snapping leaves the feel alone and only changes where output reaches full. Snap both zones to match an original controller exactly, so output tracks the physical position.
+
+Pick axial only to match an original controller that had a separate deadzone on each axis. It bends the direction toward straight up, down, left or right, and a stick pushed into a diagonal reads short of full.
 
 ### Response Curves
 

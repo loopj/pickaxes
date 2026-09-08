@@ -152,12 +152,13 @@ static void scaled_deadzone_rises_from_zero(void)
   TEST_ASSERT_INT_WITHIN(4, AXES_FULL_SCALE, x);
 }
 
-static void unscaled_deadzone_is_position_true(void)
+static void position_true_deadzone_matches_physical_position(void)
 {
   struct axes_stick_shaping s = {
-    .deadzone_inner = 400,
-    .deadzone_mode  = AXES_DEADZONE_MODE_UNSCALED,
-    .gate_shape     = AXES_GATE_SHAPE_CIRCLE,
+    .deadzone_inner      = 400,
+    .deadzone_mode_inner = AXES_DEADZONE_MODE_SNAP,
+    .deadzone_mode_outer = AXES_DEADZONE_MODE_SNAP,
+    .gate_shape          = AXES_GATE_SHAPE_CIRCLE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -168,16 +169,94 @@ static void unscaled_deadzone_is_position_true(void)
   TEST_ASSERT_INT_WITHIN(8, 2048, x);
 }
 
+static void scaled_inner_keeps_the_outer_out_of_the_scale(void)
+{
+  // The outer zone moves where output saturates without changing sensitivity, so
+  // half deflection reads the same whether or not an outer zone is configured.
+  struct axes_stick_shaping s = {
+    .deadzone_inner      = 400,
+    .deadzone_outer      = 400,
+    .deadzone_mode_inner = AXES_DEADZONE_MODE_SCALE,
+    .deadzone_mode_outer = AXES_DEADZONE_MODE_SNAP,
+    .gate_shape          = AXES_GATE_SHAPE_CIRCLE,
+  };
+  struct axes_stick_shaping inner_only = {
+    .deadzone_inner      = 400,
+    .deadzone_mode_inner = AXES_DEADZONE_MODE_SCALE,
+    .deadzone_mode_outer = AXES_DEADZONE_MODE_SNAP,
+    .gate_shape          = AXES_GATE_SHAPE_CIRCLE,
+  };
+  struct axes_stick_transform t, no_outer;
+  int16_t x, y, nx, ny;
+  axes_stick_derive(&t, &cal, &s);
+  axes_stick_derive(&no_outer, &cal, &inner_only);
+
+  axes_stick_apply(&t, 2048 + 1024, 2048, &x, &y);
+  axes_stick_apply(&no_outer, 2048 + 1024, 2048, &nx, &ny);
+  TEST_ASSERT_EQUAL_INT(nx, x);
+
+  // Output still rises from zero at the inner edge, and the outer zone snaps
+  axes_stick_apply(&t, 2048 + 250, 2048, &x, &y); // normalized 500 vs inner 400
+  TEST_ASSERT_TRUE(x > 0);
+  TEST_ASSERT_TRUE(x <= 160);
+
+  axes_stick_apply(&t, 3950, 2048, &x, &y); // normalized 3804, inside the outer zone
+  TEST_ASSERT_INT_WITHIN(4, AXES_FULL_SCALE, x);
+
+  // Folding the outer zone into the scale instead would have raised half deflection
+  struct axes_stick_shaping folded = s;
+  folded.deadzone_mode_outer       = AXES_DEADZONE_MODE_SCALE;
+  struct axes_stick_transform scaled;
+  int16_t sx, sy;
+  axes_stick_derive(&scaled, &cal, &folded);
+  axes_stick_apply(&scaled, 2048 + 1024, 2048, &sx, &sy);
+
+  TEST_ASSERT_TRUE(sx > x || sx > nx);
+}
+
+static void the_two_zone_modes_are_independent(void)
+{
+  // A snapping inner zone with a scaled outer keeps the jump at the inner edge
+  // while the outer zone raises the gain instead of snapping.
+  struct axes_stick_shaping s = {
+    .deadzone_inner      = 400,
+    .deadzone_outer      = 400,
+    .deadzone_mode_inner = AXES_DEADZONE_MODE_SNAP,
+    .deadzone_mode_outer = AXES_DEADZONE_MODE_SCALE,
+    .gate_shape          = AXES_GATE_SHAPE_CIRCLE,
+  };
+  struct axes_stick_shaping both_snap = s;
+  both_snap.deadzone_mode_outer       = AXES_DEADZONE_MODE_SNAP;
+
+  struct axes_stick_transform t, snapped;
+  int16_t x, y, sx, sy;
+  axes_stick_derive(&t, &cal, &s);
+  axes_stick_derive(&snapped, &cal, &both_snap);
+
+  // Inside the inner zone still reads centred, and leaving it still jumps
+  axes_stick_apply(&t, 2048 + 150, 2048, &x, &y); // normalized 300 vs inner 400
+  TEST_ASSERT_EQUAL_INT(0, x);
+  axes_stick_apply(&t, 2048 + 250, 2048, &x, &y); // normalized 500, just outside
+  TEST_ASSERT_TRUE(x > 400);
+
+  // The scaled outer raises the gain, so half deflection reads higher than it
+  // does with both zones snapping
+  axes_stick_apply(&t, 2048 + 1024, 2048, &x, &y);
+  axes_stick_apply(&snapped, 2048 + 1024, 2048, &sx, &sy);
+  TEST_ASSERT_TRUE(x > sx);
+}
+
 static void deadzone_overlap_stays_bounded(void)
 {
   // Characterization, not documented spec: inner + outer beyond full scale is
   // nonsense config, and the current behavior (a floored live band) just needs
   // to stay crash-free and bounded. Revisit if the README ever pins semantics.
   struct axes_stick_shaping s = {
-    .deadzone_inner = 3000,
-    .deadzone_outer = 3000,
-    .deadzone_mode  = AXES_DEADZONE_MODE_SCALED,
-    .gate_shape     = AXES_GATE_SHAPE_CIRCLE,
+    .deadzone_inner      = 3000,
+    .deadzone_outer      = 3000,
+    .deadzone_mode_inner = AXES_DEADZONE_MODE_SCALE,
+    .deadzone_mode_outer = AXES_DEADZONE_MODE_SCALE,
+    .gate_shape          = AXES_GATE_SHAPE_CIRCLE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -214,10 +293,11 @@ static void gamma_applies_after_deadzones(void)
   // The curve bends the deadzoned signal, so output at the zone edge is still
   // zero and just past it is still near zero, for any gamma.
   struct axes_stick_shaping s = {
-    .deadzone_inner = 400,
-    .deadzone_mode  = AXES_DEADZONE_MODE_SCALED,
-    .response_gamma = 2 * AXES_GAMMA_LINEAR,
-    .gate_shape     = AXES_GATE_SHAPE_CIRCLE,
+    .deadzone_inner      = 400,
+    .deadzone_mode_inner = AXES_DEADZONE_MODE_SCALE,
+    .deadzone_mode_outer = AXES_DEADZONE_MODE_SCALE,
+    .response_gamma      = 2 * AXES_GAMMA_LINEAR,
+    .gate_shape          = AXES_GATE_SHAPE_CIRCLE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -276,14 +356,15 @@ static void gate_n64_matches_oem_extents(void)
     .max_y  = 3907,
   };
   struct axes_stick_shaping ns = {
-    .deadzone_inner = AXES_FULL_SCALE * 0.05,
-    .deadzone_outer = AXES_FULL_SCALE * 0.02,
-    .deadzone_shape = AXES_DEADZONE_SHAPE_RADIAL,
-    .deadzone_mode  = AXES_DEADZONE_MODE_SCALED,
-    .response_gamma = AXES_GAMMA_LINEAR,
-    .gate_shape     = AXES_GATE_SHAPE_OCTAGON,
-    .gate_corner    = AXES_OCTAGON_N64,
-    .gate_mode      = AXES_GATE_MODE_SCALE,
+    .deadzone_inner      = AXES_FULL_SCALE * 0.05,
+    .deadzone_outer      = AXES_FULL_SCALE * 0.02,
+    .deadzone_shape      = AXES_DEADZONE_SHAPE_RADIAL,
+    .deadzone_mode_inner = AXES_DEADZONE_MODE_SCALE,
+    .deadzone_mode_outer = AXES_DEADZONE_MODE_SCALE,
+    .response_gamma      = AXES_GAMMA_LINEAR,
+    .gate_shape          = AXES_GATE_SHAPE_OCTAGON,
+    .gate_corner         = AXES_OCTAGON_N64,
+    .gate_mode           = AXES_GATE_MODE_SCALE,
   };
   struct axes_stick_transform t;
   int16_t x, y;
@@ -431,7 +512,9 @@ int main(void)
   RUN_TEST(radial_deadzone_measures_the_circle);
   RUN_TEST(axial_deadzone_measures_each_axis);
   RUN_TEST(scaled_deadzone_rises_from_zero);
-  RUN_TEST(unscaled_deadzone_is_position_true);
+  RUN_TEST(position_true_deadzone_matches_physical_position);
+  RUN_TEST(scaled_inner_keeps_the_outer_out_of_the_scale);
+  RUN_TEST(the_two_zone_modes_are_independent);
   RUN_TEST(deadzone_overlap_stays_bounded);
   RUN_TEST(gamma_two_quarters_half_deflection);
   RUN_TEST(gamma_applies_after_deadzones);
