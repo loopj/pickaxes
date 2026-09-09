@@ -891,6 +891,8 @@ int axes_trigger_shaping_pack(uint8_t *dest, size_t size, const struct axes_trig
   // Reject out of range settings
   if (src->deadzone_mode_inner >= AXES_DEADZONE_MODE_COUNT || src->deadzone_mode_outer >= AXES_DEADZONE_MODE_COUNT)
     return -AXES_ERR_INVALID;
+  if (src->deadzone_inner >= AXES_FULL_SCALE || src->deadzone_outer >= AXES_FULL_SCALE)
+    return -AXES_ERR_INVALID;
 
   uint8_t deadzone_flags = (uint8_t)((src->deadzone_mode_inner << 2) | (src->deadzone_mode_outer << 3));
 
@@ -907,8 +909,15 @@ int axes_trigger_shaping_unpack(struct axes_trigger_shaping *dest, const uint8_t
   if (size < AXES_PACKED_TRIGGER_SHAPING_SIZE)
     return -AXES_ERR_SIZE;
 
-  dest->deadzone_inner      = axes_get_u16(&src[0]);
-  dest->deadzone_outer      = axes_get_u16(&src[2]);
+  uint16_t deadzone_inner = axes_get_u16(&src[0]);
+  uint16_t deadzone_outer = axes_get_u16(&src[2]);
+
+  // Reject a deadzone wide enough to swallow the whole travel on its own
+  if (deadzone_inner >= AXES_FULL_SCALE || deadzone_outer >= AXES_FULL_SCALE)
+    return -AXES_ERR_INVALID;
+
+  dest->deadzone_inner      = deadzone_inner;
+  dest->deadzone_outer      = deadzone_outer;
   dest->deadzone_mode_inner = (enum axes_deadzone_mode)((src[4] >> 2) & 1u);
   dest->deadzone_mode_outer = (enum axes_deadzone_mode)((src[4] >> 3) & 1u);
   dest->response_gamma      = axes_get_u16(&src[5]);
@@ -927,6 +936,9 @@ int axes_stick_shaping_pack(uint8_t *dest, size_t size, const struct axes_stick_
   if (src->deadzone_mode_inner >= AXES_DEADZONE_MODE_COUNT || src->deadzone_mode_outer >= AXES_DEADZONE_MODE_COUNT)
     return -AXES_ERR_INVALID;
   if (src->gate_shape >= AXES_GATE_SHAPE_COUNT || src->gate_mode >= AXES_GATE_MODE_COUNT)
+    return -AXES_ERR_INVALID;
+  if (src->deadzone_inner >= AXES_FULL_SCALE || src->deadzone_outer >= AXES_FULL_SCALE ||
+      src->gate_corner > AXES_OCTAGON_SQUARE)
     return -AXES_ERR_INVALID;
 
   uint8_t deadzone_flags =
@@ -955,15 +967,23 @@ int axes_stick_shaping_unpack(struct axes_stick_shaping *dest, const uint8_t *sr
   if (deadzone_shape >= AXES_DEADZONE_SHAPE_COUNT || gate_shape >= AXES_GATE_SHAPE_COUNT)
     return -AXES_ERR_INVALID;
 
-  dest->deadzone_inner      = axes_get_u16(&src[0]);
-  dest->deadzone_outer      = axes_get_u16(&src[2]);
+  uint16_t deadzone_inner = axes_get_u16(&src[0]);
+  uint16_t deadzone_outer = axes_get_u16(&src[2]);
+  uint16_t gate_corner    = axes_get_u16(&src[8]);
+
+  // Reject a deadzone wide enough to swallow the whole travel, and corners past a square gate
+  if (deadzone_inner >= AXES_FULL_SCALE || deadzone_outer >= AXES_FULL_SCALE || gate_corner > AXES_OCTAGON_SQUARE)
+    return -AXES_ERR_INVALID;
+
+  dest->deadzone_inner      = deadzone_inner;
+  dest->deadzone_outer      = deadzone_outer;
   dest->deadzone_shape      = (enum axes_deadzone_shape)deadzone_shape;
   dest->deadzone_mode_inner = (enum axes_deadzone_mode)((src[4] >> 2) & 1u);
   dest->deadzone_mode_outer = (enum axes_deadzone_mode)((src[4] >> 3) & 1u);
   dest->response_gamma      = axes_get_u16(&src[5]);
   dest->gate_shape          = (enum axes_gate_shape)gate_shape;
   dest->gate_mode           = (enum axes_gate_mode)((src[7] >> 2) & 1u);
-  dest->gate_corner         = axes_get_u16(&src[8]);
+  dest->gate_corner         = gate_corner;
 
   return 0;
 }

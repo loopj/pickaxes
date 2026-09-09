@@ -756,9 +756,6 @@ int axes_trigger_shaping_pack(uint8_t *dest, size_t size, const struct axes_trig
 /**
  * Unpack trigger shaping settings written by axes_trigger_shaping_pack().
  *
- * Deadzone widths and gammas are passed through as stored, since
- * axes_trigger_derive() already clamps them.
- *
  * @param dest destination for the unpacked settings, untouched on failure
  * @param src source bytes
  * @param size bytes available in the source buffer
@@ -778,9 +775,6 @@ int axes_stick_shaping_pack(uint8_t *dest, size_t size, const struct axes_stick_
 
 /**
  * Unpack stick shaping settings written by axes_stick_shaping_pack().
- *
- * Deadzone widths, gammas and gate corners are passed through as stored, since
- * axes_stick_derive() already clamps them.
  *
  * @param dest destination for the unpacked settings, untouched on failure
  * @param src source bytes
