@@ -35,6 +35,17 @@ enum axes_error {
 #define AXES_FULL_SCALE_BITS 12
 #define AXES_FULL_SCALE      (1 << AXES_FULL_SCALE_BITS)
 
+/**
+ * Nominal full deflection, in a controller's own wire units.
+ *
+ * What to emit at the limits of travel, and what OEM gate geometry is
+ * described against. Real sticks and gates wear asymmetrically, so these are
+ * a reference rather than a measurement.
+ */
+#define AXES_CARDINAL_N64 85
+#define AXES_CARDINAL_GCN 100
+#define AXES_DIAGONAL_N64 70
+
 /** Layout version of the packed records, bumped when any layout changes */
 #define AXES_PACKED_VERSION 2
 
@@ -143,8 +154,8 @@ enum axes_gate_shape {
 /** Corners on the full-scale circle, AXES_FULL_SCALE / sqrt(2) */
 #define AXES_OCTAGON_REGULAR  2896
 
-/** Corners at 70/85 of full scale, matching an OEM N64 gate */
-#define AXES_OCTAGON_N64      (AXES_FULL_SCALE * 70 / 85)
+/** Corners matching an OEM N64 gate */
+#define AXES_OCTAGON_N64      (AXES_FULL_SCALE * AXES_DIAGONAL_N64 / AXES_CARDINAL_N64)
 
 /**
  * How a gate is reconciled with the stick's range of travel.
